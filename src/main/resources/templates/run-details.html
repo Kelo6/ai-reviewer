@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN" 
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'运行详情 - ' + ${runId} + ' - AI Reviewer'">运行详情 - AI Reviewer</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <!-- <script th:src="@{/js/chart.min.js}"></script> -->
+    <script th:src="@{/js/charts.js}"></script>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-content">
+                <a class="navbar-brand" th:href="@{/dashboard}">
+                    🤖 AI Reviewer
+                </a>
+                <ul class="navbar-nav" sec:authorize="isAuthenticated()">
+                    <li><a class="nav-link" th:href="@{/dashboard}">仪表板</a></li>
+                    <li class="nav-item">
+                        <span class="nav-link" sec:authentication="name">用户</span>
+                    </li>
+                    <li class="nav-item">
+                        <form th:action="@{/logout}" method="post" style="display: inline;">
+                            <button type="submit" class="btn btn-outline btn-sm">退出登录</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container" th:if="${run}">
+            <!-- 面包屑导航 -->
+            <nav class="mb-3">
+                <a th:href="@{/dashboard}" class="text-primary">仪表板</a> / 
+                <span class="text-muted">运行详情</span>
+            </nav>
+            
+            <!-- 页面标题 -->
+            <div class="mb-4">
+                <h1>评审运行详情</h1>
+                <p class="text-muted">
+                    运行ID: <code th:text="${run.runId}">run-12345</code> | 
+                    创建时间: <span th:text="${#temporals.format(run.createdAt, 'yyyy-MM-dd HH:mm:ss')}">2024-01-15 10:30:00</span>
+                </p>
+            </div>
+            
+            <!-- 基本信息卡片 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h2 class="card-title">基本信息</h2>
+                </div>
+                <div class="card-body">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">仓库</div>
+                            <div class="stat-value text-small">
+                                <a th:href="@{'https://github.com/' + ${run.repo.owner} + '/' + ${run.repo.name}}" 
+                                   target="_blank"
+                                   class="text-primary">
+                                    <span th:text="${run.repo.owner + '/' + run.repo.name}">owner/repo</span>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Pull Request</div>
+                            <div class="stat-value text-small">
+                                <span class="badge badge-secondary" th:text="'#' + ${run.pull.number}">#123</span>
+                                <div class="mt-1" th:text="${run.pull.title}">PR标题</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">分支</div>
+                            <div class="stat-value text-small">
+                                <code th:text="${run.pull.sourceBranch}">feature</code> → 
+                                <code th:text="${run.pull.targetBranch}">main</code>
+                            </div>
+                        </div>
+                        <div class="stat-card" th:if="${run.stats}">
+                            <div class="stat-label">处理时间</div>
+                            <div class="stat-value text-small" th:text="${latencySeconds + '秒'}">12秒</div>
+                        </div>
+                        <div class="stat-card" th:if="${run.stats != null and run.stats.tokenCostUsd != null}">
+                            <div class="stat-label">API成本</div>
+                            <div class="stat-value text-small" th:text="${formattedCost}">$0.25</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 评分概览 -->
+            <div class="card mb-4" th:if="${run.scores}">
+                <div class="card-header">
+                    <h2 class="card-title">评分概览</h2>
+                    <div class="card-subtitle">
+                        总分: <span class="badge badge-lg" 
+                                   th:classappend="${run.scores.totalScore >= 90 ? 'badge-success' : (run.scores.totalScore >= 70 ? 'badge-warning' : 'badge-error')}"
+                                   th:text="${#numbers.formatDecimal(run.scores.totalScore, 1, 1)}">85.5</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
+                        <!-- 雷达图 -->
+                        <div class="radar-chart">
+                            <canvas id="radarChart" width="400" height="400"></canvas>
+                        </div>
+                        
+                        <!-- 维度分数列表 -->
+                        <div>
+                            <h3 class="mb-3">各维度得分</h3>
+                            <div class="space-y-3">
+                                <div th:each="entry : ${run.scores.dimensions}" class="d-flex justify-content-between align-items-center">
+                                    <span th:switch="${entry.key.name()}">
+                                        <span th:case="'SECURITY'">🔒 安全性</span>
+                                        <span th:case="'QUALITY'">✨ 代码质量</span>
+                                        <span th:case="'MAINTAINABILITY'">🔧 可维护性</span>
+                                        <span th:case="'PERFORMANCE'">⚡ 性能</span>
+                                        <span th:case="'TEST_COVERAGE'">🧪 测试覆盖</span>
+                                        <span th:case="*" th:text="${entry.key}">维度</span>
+                                    </span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="progress" style="width: 100px; height: 8px; background: var(--bg-tertiary); border-radius: 4px;">
+                                            <div class="progress-bar" 
+                                                 style="height: 100%; border-radius: 4px;"
+                                                 th:style="'width: ' + ${entry.value} + '%; background: ' + (${entry.value >= 90} ? 'var(--success-color)' : (${entry.value >= 70} ? 'var(--warning-color)' : 'var(--error-color)')) + ';'"></div>
+                                        </div>
+                                        <span class="badge" 
+                                              th:classappend="${entry.value >= 90 ? 'badge-success' : (entry.value >= 70 ? 'badge-warning' : 'badge-error')}"
+                                              th:text="${#numbers.formatDecimal(entry.value, 1, 1)}">85.5</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 统计信息 -->
+            <div class="card mb-4" th:if="${run.stats}">
+                <div class="card-header">
+                    <h2 class="card-title">变更统计</h2>
+                </div>
+                <div class="card-body">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" th:text="${run.stats.filesChanged}">8</div>
+                            <div class="stat-label">文件变更</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value text-success" th:text="'+' + ${run.stats.linesAdded}">+245</div>
+                            <div class="stat-label">新增行数</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value text-error" th:text="'-' + ${run.stats.linesDeleted}">-67</div>
+                            <div class="stat-label">删除行数</div>
+                        </div>
+                        <div class="stat-card" th:if="${run.findings}">
+                            <div class="stat-value" th:text="${run.findings.size()}">12</div>
+                            <div class="stat-label">发现问题</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 问题统计 -->
+            <div class="card mb-4" th:if="${run.findings}">
+                <div class="card-header">
+                    <h2 class="card-title">问题概览</h2>
+                </div>
+                <div class="card-body">
+                    <div class="stats-grid">
+                        <div class="stat-card" th:if="${criticalCount > 0}">
+                            <div class="stat-value text-error" th:text="${criticalCount}">0</div>
+                            <div class="stat-label">🔥 严重问题</div>
+                        </div>
+                        <div class="stat-card" th:if="${majorCount > 0}">
+                            <div class="stat-value" style="color: var(--warning-color);" th:text="${majorCount}">2</div>
+                            <div class="stat-label">❗ 重要问题</div>
+                        </div>
+                        <div class="stat-card" th:if="${minorCount > 0}">
+                            <div class="stat-value" style="color: var(--info-color);" th:text="${minorCount}">5</div>
+                            <div class="stat-label">⚠️ 一般问题</div>
+                        </div>
+                        <div class="stat-card" th:if="${infoCount > 0}">
+                            <div class="stat-value text-muted" th:text="${infoCount}">3</div>
+                            <div class="stat-label">ℹ️ 提示信息</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 问题详情 -->
+            <div class="card mb-4" th:if="${run.findings != null and !run.findings.empty}">
+                <div class="card-header">
+                    <h2 class="card-title">问题详情</h2>
+                    <div class="card-subtitle">点击展开查看详细信息</div>
+                </div>
+                <div class="card-body">
+                    <div id="findings-container">
+                        <div th:replace="~{fragments/findings :: findings-list}"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 下载报告 -->
+            <div class="card mb-4" th:if="${run.artifacts}">
+                <div class="card-header">
+                    <h2 class="card-title">下载报告</h2>
+                    <div class="card-subtitle">多种格式的详细报告</div>
+                </div>
+                <div class="card-body">
+                    <div class="download-buttons">
+                        <a th:href="@{'/download/' + ${runId} + '/json'}" 
+                           class="btn btn-outline" 
+                           download>
+                            📄 JSON报告
+                        </a>
+                        <a th:href="@{'/download/' + ${runId} + '/html'}" 
+                           class="btn btn-outline" 
+                           download>
+                            🌐 HTML报告
+                        </a>
+                        <a th:href="@{'/download/' + ${runId} + '/pdf'}" 
+                           class="btn btn-outline" 
+                           download>
+                            📑 PDF报告
+                        </a>
+                        <a th:href="@{'/download/' + ${runId} + '/sarif'}" 
+                           class="btn btn-outline" 
+                           download>
+                            🔍 SARIF报告
+                        </a>
+                        <a th:href="@{'/reports/' + ${runId}}" 
+                           class="btn btn-primary" 
+                           target="_blank">
+                            👁️ 预览报告
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 错误页面 -->
+        <div class="container text-center" th:unless="${run}" style="padding: 4rem 0;">
+            <div style="font-size: 4rem; margin-bottom: 2rem;">❌</div>
+            <h1>运行未找到</h1>
+            <p class="text-muted mb-4">指定的评审运行不存在或已被删除</p>
+            <a th:href="@{/dashboard}" class="btn btn-primary">返回仪表板</a>
+        </div>
+    </main>
+    
+    <!-- 初始化雷达图 -->
+    <script th:if="${run?.scores}" th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            const scores = /*[[${run.scores.dimensions}]]*/ {};
+            const weights = /*[[${run.scores.weights}]]*/ {};
+            
+            // 转换Java Map为JavaScript对象
+            const scoresObj = {};
+            const weightsObj = {};
+            
+            // 处理Thymeleaf传递的Map数据
+            Object.keys(scores).forEach(key => {
+                scoresObj[key] = scores[key];
+            });
+            
+            Object.keys(weights).forEach(key => {
+                weightsObj[key] = weights[key];
+            });
+            
+            ReviewCharts.createRadarChart('radarChart', scoresObj, weightsObj);
+        });
+    </script>
+</body>
+</html>

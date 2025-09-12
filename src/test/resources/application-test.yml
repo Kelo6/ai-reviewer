@@ -1,0 +1,47 @@
+# 测试专用配置文件
+spring:
+  main:
+    allow-circular-references: true
+  
+  # 使用内存H2数据库
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  
+  # JPA配置（针对H2优化）
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    database-platform: org.hibernate.dialect.H2Dialect
+    defer-datasource-initialization: true
+  
+  # 禁用Flyway
+  flyway:
+    enabled: false
+  
+  # 为测试提供虚拟的OAuth2配置
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: test-github-client
+            client-secret: test-github-secret
+          gitlab:
+            client-id: test-gitlab-client
+            client-secret: test-gitlab-secret
+
+# 应用配置
+app:
+  version: test
+  name: "AI Code Reviewer Test"
+
+# 日志配置
+logging:
+  level:
+    root: WARN
+    com.ai.reviewer: INFO
+    org.springframework.web: DEBUG

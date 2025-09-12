@@ -1,0 +1,71 @@
+# 测试环境配置
+spring:
+  main:
+    allow-circular-references: true
+  
+  # 使用内存H2数据库进行测试
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  
+  # JPA/Hibernate配置
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    database-platform: org.hibernate.dialect.H2Dialect
+    properties:
+      hibernate:
+        format_sql: false
+        use_sql_comments: false
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        connection:
+          characterEncoding: UTF-8
+          CharSet: UTF-8
+          useUnicode: true
+  
+  # Flyway配置（测试时禁用）
+  flyway:
+    enabled: false
+  
+  # 测试环境不需要这些配置
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: test
+            client-secret: test
+          gitlab:
+            client-id: test  
+            client-secret: test
+
+# 日志配置
+logging:
+  level:
+    root: WARN
+    com.ai.reviewer: INFO
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate: WARN
+    org.springframework.test: DEBUG
+
+# 管理端点
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+# 应用配置
+app:
+  version: test
+  name: "AI Code Reviewer Test"

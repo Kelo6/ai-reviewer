@@ -1,0 +1,98 @@
+# AI Reviewer Backend Demo Configuration
+spring:
+  application:
+    name: ai-reviewer-backend-demo
+  
+  main:
+    allow-circular-references: true
+  
+  # 使用H2内存数据库进行演示
+  datasource:
+    url: jdbc:h2:mem:ai_reviewer_demo;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      idle-timeout: 300000
+      max-lifetime: 900000
+      connection-timeout: 10000
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop  # 演示模式自动创建表
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+        implicit-strategy: org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy
+    show-sql: true  # 演示模式显示SQL
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+  
+  # H2 Console for demo purposes
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: true
+
+server:
+  port: 8080
+
+# 演示模式配置
+demo:
+  mode: true
+  mock-external-services: true
+
+# AI Reviewer specific configuration  
+ai-reviewer:
+  providers:
+    github:
+      enabled: false  # 演示模式禁用GitHub
+      base-url: https://api.github.com
+      webhook-secret: demo-secret
+    gitlab:
+      enabled: false  # 演示模式禁用GitLab
+      base-url: https://gitlab.com/api/v4
+      webhook-secret: demo-secret
+  
+  reports:
+    output-dir: target/demo-reports
+    formats:
+      markdown: true
+      html: true
+      pdf: false  # 演示模式禁用PDF
+      sarif: true
+  
+  review:
+    default-config:
+      analysis:
+        static-analysis:
+          enabled: true
+          confidence-threshold: 0.7
+        ai-review:
+          enabled: true
+          confidence-threshold: 0.8
+      providers: []  # 演示模式使用mock providers
+
+# Logging configuration for demo
+logging:
+  level:
+    com.ai.reviewer: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] - %msg%n"
+
+# Management endpoints for demo
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
