@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN" 
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'报告预览 - ' + ${runId} + ' - AI Reviewer'">报告预览 - AI Reviewer</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+    <style>
+        /* 报告预览特定样式 */
+        .report-frame {
+            width: 100%;
+            min-height: 600px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            background: white;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .report-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        }
+        
+        .report-content {
+            padding: 2rem;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        /* 覆盖报告内容的样式以适配预览 */
+        .report-content h1, .report-content h2, .report-content h3 {
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .report-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        
+        .report-content table th,
+        .report-content table td {
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            text-align: left;
+        }
+        
+        .report-content table th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+        }
+        
+        .report-content pre {
+            background: var(--bg-tertiary);
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            overflow-x: auto;
+            font-size: 0.875rem;
+        }
+        
+        .report-content code {
+            background: var(--bg-tertiary);
+            padding: 0.2rem 0.4rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+        }
+        
+        .fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 9999;
+            background: white;
+        }
+        
+        .fullscreen .report-content {
+            max-height: calc(100vh - 80px);
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-content">
+                <a class="navbar-brand" th:href="@{/dashboard}">
+                    🤖 AI Reviewer
+                </a>
+                <ul class="navbar-nav" sec:authorize="isAuthenticated()">
+                    <li><a class="nav-link" th:href="@{/dashboard}">仪表板</a></li>
+                    <li class="nav-item">
+                        <span class="nav-link" sec:authentication="name">用户</span>
+                    </li>
+                    <li class="nav-item">
+                        <form th:action="@{/logout}" method="post" style="display: inline;">
+                            <button type="submit" class="btn btn-outline btn-sm">退出登录</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container" th:if="${htmlContent}">
+            <!-- 面包屑导航 -->
+            <nav class="mb-3">
+                <a th:href="@{/dashboard}" class="text-primary">仪表板</a> / 
+                <a th:href="@{'/runs/' + ${runId}}" class="text-primary">运行详情</a> / 
+                <span class="text-muted">报告预览</span>
+            </nav>
+            
+            <!-- 页面标题 -->
+            <div class="mb-4">
+                <h1>报告预览</h1>
+                <p class="text-muted">
+                    运行ID: <code th:text="${runId}">run-12345</code>
+                </p>
+            </div>
+            
+            <!-- 报告框架 -->
+            <div class="report-frame" id="reportFrame">
+                <!-- 工具栏 -->
+                <div class="report-toolbar">
+                    <div>
+                        <span class="text-muted">📄 HTML 报告预览</span>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-outline btn-sm" 
+                                onclick="toggleFullscreen()"
+                                id="fullscreenBtn">
+                            🔍 全屏查看
+                        </button>
+                        <a th:href="@{'/download/' + ${runId} + '/html'}" 
+                           class="btn btn-outline btn-sm" 
+                           download>
+                            💾 下载HTML
+                        </a>
+                        <a th:href="@{'/download/' + ${runId} + '/pdf'}" 
+                           class="btn btn-primary btn-sm" 
+                           download>
+                            📑 下载PDF
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- 报告内容 -->
+                <div class="report-content" id="reportContent">
+                    <!-- 直接嵌入HTML内容，需要注意XSS安全 -->
+                    <div th:utext="${htmlContent}">
+                        报告内容将在此处显示
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 返回按钮 -->
+            <div class="text-center mt-4">
+                <a th:href="@{'/runs/' + ${runId}}" class="btn btn-secondary">
+                    ← 返回运行详情
+                </a>
+            </div>
+        </div>
+        
+        <!-- 错误页面 -->
+        <div class="container text-center" th:unless="${htmlContent}" style="padding: 4rem 0;">
+            <div style="font-size: 4rem; margin-bottom: 2rem;">📄</div>
+            <h1>报告预览不可用</h1>
+            <p class="text-muted mb-4" th:text="${error ?: '无法加载HTML报告内容'}">无法加载报告内容</p>
+            <a th:href="@{'/runs/' + ${runId}}" class="btn btn-primary">返回运行详情</a>
+        </div>
+    </main>
+    
+    <script>
+        // 全屏切换功能
+        function toggleFullscreen() {
+            const frame = document.getElementById('reportFrame');
+            const btn = document.getElementById('fullscreenBtn');
+            
+            if (frame.classList.contains('fullscreen')) {
+                frame.classList.remove('fullscreen');
+                btn.innerHTML = '🔍 全屏查看';
+                document.body.style.overflow = '';
+            } else {
+                frame.classList.add('fullscreen');
+                btn.innerHTML = '❌ 退出全屏';
+                document.body.style.overflow = 'hidden';
+            }
+        }
+        
+        // ESC键退出全屏
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const frame = document.getElementById('reportFrame');
+                if (frame.classList.contains('fullscreen')) {
+                    toggleFullscreen();
+                }
+            }
+        });
+        
+        // 平滑滚动到锚点
+        document.addEventListener('click', function(e) {
+            const target = e.target;
+            if (target.tagName === 'A' && target.hash) {
+                e.preventDefault();
+                const element = document.querySelector(target.hash);
+                if (element) {
+                    element.scrollIntoView({ 
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            }
+        });
+        
+        // 代码块复制功能
+        document.querySelectorAll('pre code').forEach(function(block) {
+            const button = document.createElement('button');
+            button.className = 'btn btn-outline btn-sm';
+            button.innerHTML = '📋 复制';
+            button.style.position = 'absolute';
+            button.style.top = '0.5rem';
+            button.style.right = '0.5rem';
+            button.style.fontSize = '0.75rem';
+            
+            const container = block.parentElement;
+            container.style.position = 'relative';
+            container.appendChild(button);
+            
+            button.addEventListener('click', async function() {
+                try {
+                    await navigator.clipboard.writeText(block.textContent);
+                    button.innerHTML = '✅ 已复制';
+                    setTimeout(() => {
+                        button.innerHTML = '📋 复制';
+                    }, 2000);
+                } catch (err) {
+                    button.innerHTML = '❌ 复制失败';
+                    setTimeout(() => {
+                        button.innerHTML = '📋 复制';
+                    }, 2000);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

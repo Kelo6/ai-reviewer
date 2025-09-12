@@ -1,0 +1,11 @@
+# AI Reviewer 报告配置
+ai-reviewer:
+  reports:
+    output-dir: ${user.home}/ai-reviewer-reports
+    # 是否在启动时创建报告目录
+    create-dir-on-startup: true
+    # 模板配置  
+    templates:
+      markdown: report.md.ftl
+      # 报告保留天数
+    retention-days: 30

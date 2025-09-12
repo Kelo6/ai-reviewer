@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle != null ? pageTitle + ' - AI Reviewer' : 'AI Reviewer'}">AI Reviewer</title>
+    
+    <!-- 样式文件 -->
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    
+    <!-- Chart.js -->
+    <script th:src="@{/js/chart.min.js}"></script>
+    
+    <!-- 自定义脚本 -->
+    <script th:src="@{/js/charts.js}"></script>
+    
+    <meta name="htmx-config" content='{"globalViewTransitions":true}'>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar" th:fragment="navbar">
+        <div class="container">
+            <div class="navbar-content">
+                <a class="navbar-brand" th:href="@{/dashboard}">
+                    🤖 AI Reviewer
+                </a>
+                <ul class="navbar-nav" sec:authorize="isAuthenticated()">
+                    <li><a class="nav-link" th:href="@{/dashboard}" th:classappend="${#httpServletRequest.requestURI == '/dashboard' or #httpServletRequest.requestURI == '/' ? 'active' : ''}">仪表板</a></li>
+                    <li class="nav-item">
+                        <span class="nav-link" sec:authentication="name">用户</span>
+                    </li>
+                    <li class="nav-item">
+                        <form th:action="@{/logout}" method="post" style="display: inline;">
+                            <button type="submit" class="btn btn-outline btn-sm">退出登录</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <main class="main-content">
+        <div class="container">
+            <!-- 面包屑导航 -->
+            <nav th:if="${breadcrumbs != null}" class="breadcrumb mb-3" th:fragment="breadcrumb">
+                <ol class="breadcrumb-list">
+                    <li th:each="crumb : ${breadcrumbs}" class="breadcrumb-item">
+                        <a th:if="${crumb.url != null}" th:href="${crumb.url}" th:text="${crumb.text}">链接</a>
+                        <span th:unless="${crumb.url != null}" th:text="${crumb.text}">当前页</span>
+                    </li>
+                </ol>
+            </nav>
+            
+            <!-- 错误消息 -->
+            <div th:if="${error != null}" class="alert alert-error mb-3">
+                <span th:text="${error}">错误消息</span>
+            </div>
+            
+            <!-- 成功消息 -->
+            <div th:if="${message != null}" class="alert alert-success mb-3">
+                <span th:text="${message}">成功消息</span>
+            </div>
+            
+            <!-- 页面内容 -->
+            <div class="content" th:insert="${content}">
+                页面内容将在此处显示
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="footer" th:fragment="footer">
+        <div class="container">
+            <div class="text-center text-muted text-small">
+                © 2024 AI Reviewer. Powered by Spring Boot & Thymeleaf.
+            </div>
+        </div>
+    </footer>
+    
+    <!-- 加载指示器 -->
+    <div id="loading-indicator" class="loading" style="display: none; position: fixed; top: 20px; right: 20px; z-index: 9999;">
+        <div class="spinner"></div>
+        <span>加载中...</span>
+    </div>
+</body>
+</html>

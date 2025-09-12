@@ -1,0 +1,59 @@
+{
+  "object_kind": "push",
+  "event_name": "push",
+  "before": "95790bf891e76fee5e1747ab589903a6a1f80f22",
+  "after": "abc123def456789abcdef123456789abcdef1234",
+  "ref": "refs/heads/main",
+  "checkout_sha": "abc123def456789abcdef123456789abcdef1234",
+  "message": "Hello World",
+  "user_id": 1,
+  "user_name": "Administrator",
+  "user_username": "admin",
+  "user_email": "admin@example.com",
+  "user_avatar": "https://gitlab.example.com/uploads/-/system/user/avatar/1/avatar.png",
+  "project_id": 1,
+  "project": {
+    "id": 1,
+    "name": "test-repo",
+    "description": "Test repository for AI code review",
+    "web_url": "https://gitlab.example.com/test-org/test-repo",
+    "avatar_url": null,
+    "git_ssh_url": "git@gitlab.example.com:test-org/test-repo.git",
+    "git_http_url": "https://gitlab.example.com/test-org/test-repo.git",
+    "namespace": "test-org",
+    "visibility_level": 20,
+    "path_with_namespace": "test-org/test-repo",
+    "default_branch": "main",
+    "ci_config_path": null,
+    "homepage": "https://gitlab.example.com/test-org/test-repo",
+    "url": "git@gitlab.example.com:test-org/test-repo.git",
+    "ssh_url": "git@gitlab.example.com:test-org/test-repo.git",
+    "http_url": "https://gitlab.example.com/test-org/test-repo.git"
+  },
+  "commits": [
+    {
+      "id": "abc123def456789abcdef123456789abcdef1234",
+      "message": "Add new feature implementation\n\nThis commit adds the core feature functionality.",
+      "title": "Add new feature implementation",
+      "timestamp": "2023-10-01T10:25:00+00:00",
+      "url": "https://gitlab.example.com/test-org/test-repo/-/commit/abc123def456789abcdef123456789abcdef1234",
+      "author": {
+        "name": "Administrator",
+        "email": "admin@example.com"
+      },
+      "added": ["new_file.java"],
+      "modified": ["existing_file.java"],
+      "removed": []
+    }
+  ],
+  "total_commits_count": 1,
+  "repository": {
+    "name": "test-repo",
+    "url": "git@gitlab.example.com:test-org/test-repo.git",
+    "description": "Test repository for AI code review",
+    "homepage": "https://gitlab.example.com/test-org/test-repo",
+    "git_http_url": "https://gitlab.example.com/test-org/test-repo.git",
+    "git_ssh_url": "git@gitlab.example.com:test-org/test-repo.git",
+    "visibility_level": 20
+  }
+}

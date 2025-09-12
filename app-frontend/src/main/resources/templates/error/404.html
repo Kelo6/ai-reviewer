@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN" 
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>页面未找到 - AI Reviewer</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-content">
+                <a class="navbar-brand" th:href="@{/dashboard}">
+                    🤖 AI Reviewer
+                </a>
+                <ul class="navbar-nav" sec:authorize="isAuthenticated()">
+                    <li><a class="nav-link" th:href="@{/dashboard}">仪表板</a></li>
+                    <li class="nav-item">
+                        <span class="nav-link" sec:authentication="name">用户</span>
+                    </li>
+                    <li class="nav-item">
+                        <form th:action="@{/logout}" method="post" style="display: inline;">
+                            <button type="submit" class="btn btn-outline btn-sm">退出登录</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="text-center" style="padding: 4rem 0;">
+                <div style="font-size: 6rem; margin-bottom: 2rem;">🔍</div>
+                <h1 style="font-size: 3rem; margin-bottom: 1rem;">404</h1>
+                <h2 class="mb-3">页面未找到</h2>
+                
+                <div th:if="${error}" class="alert alert-error mb-4" style="max-width: 600px; margin: 0 auto;">
+                    <span th:text="${error}">错误信息</span>
+                </div>
+                
+                <p class="text-muted mb-4" style="font-size: 1.1rem;">
+                    抱歉，您访问的页面不存在或已被移动。
+                </p>
+                
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <a th:href="@{/dashboard}" class="btn btn-primary">
+                        🏠 返回首页
+                    </a>
+                    <button onclick="history.back()" class="btn btn-outline">
+                        ← 返回上页
+                    </button>
+                    <button onclick="location.reload()" class="btn btn-outline">
+                        🔄 刷新页面
+                    </button>
+                </div>
+                
+                <div class="mt-5 text-muted">
+                    <p>如果您认为这是一个错误，请联系管理员。</p>
+                    <p class="text-small">
+                        错误时间: <span th:text="${#dates.format(#dates.createNow(), 'yyyy-MM-dd HH:mm:ss')}">2024-01-15 10:30:00</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

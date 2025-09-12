@@ -1,0 +1,95 @@
+# AI Reviewer Frontend Configuration
+spring:
+  application:
+    name: ai-reviewer-frontend
+  
+  profiles:
+    active: dev
+  
+  thymeleaf:
+    cache: false
+    mode: HTML
+    encoding: UTF-8
+    prefix: classpath:/templates/
+    suffix: .html
+  
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: ${GITHUB_CLIENT_ID:}
+            client-secret: ${GITHUB_CLIENT_SECRET:}
+          gitlab:
+            client-id: ${GITLAB_CLIENT_ID:}
+            client-secret: ${GITLAB_CLIENT_SECRET:}
+
+# Server Configuration
+server:
+  port: 8081
+  servlet:
+    context-path: /
+
+# Management/Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+
+# Application Configuration
+app:
+  backend:
+    base-url: ${BACKEND_BASE_URL:http://localhost:8080}
+    timeout: 30s
+  
+  security:
+    enabled: ${SECURITY_ENABLED:true}
+    default-user: ${DEFAULT_USER:admin}
+    default-password: ${DEFAULT_PASSWORD:password}
+  
+  frontend:
+    title: "AI Code Reviewer"
+    version: "1.0.0"
+    contact:
+      email: "support@ai-reviewer.com"
+      github: "https://github.com/your-org/ai-reviewer"
+
+# Logging Configuration
+logging:
+  level:
+    com.ai.reviewer: INFO
+    org.springframework.security: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] - %msg%n"
+
+---
+# Development Profile
+spring:
+  config:
+    activate:
+      on-profile: dev
+  
+  thymeleaf:
+    cache: false
+
+logging:
+  level:
+    com.ai.reviewer: DEBUG
+
+---
+# Production Profile  
+spring:
+  config:
+    activate:
+      on-profile: prod
+  
+  thymeleaf:
+    cache: true
+
+logging:
+  level:
+    com.ai.reviewer: INFO

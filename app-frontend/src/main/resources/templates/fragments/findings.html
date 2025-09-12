@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+    <!-- 问题列表片段 -->
+    <div th:fragment="findings-list">
+        <div class="findings-list" th:if="${findings != null and !findings.empty}">
+            <div class="finding-item" th:each="finding : ${findings}">
+                <div class="finding-header">
+                    <h4 class="finding-title">
+                        <span th:switch="${finding.severity?.name()}">
+                            <span th:case="'CRITICAL'">🔥</span>
+                            <span th:case="'MAJOR'">❗</span>
+                            <span th:case="'MINOR'">⚠️</span>
+                            <span th:case="'INFO'">ℹ️</span>
+                            <span th:case="*">🔍</span>
+                        </span>
+                        <span th:text="${finding.title}">问题标题</span>
+                    </h4>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <span class="badge" 
+                              th:classappend="${finding.severity?.name()?.toLowerCase()?.contains('critical') ? 'severity-critical' : 
+                                             (finding.severity?.name()?.toLowerCase()?.contains('major') ? 'severity-major' : 
+                                             (finding.severity?.name()?.toLowerCase()?.contains('minor') ? 'severity-minor' : 'severity-info'))}"
+                              th:text="${finding.severity}">MAJOR</span>
+                        <span class="badge badge-secondary" 
+                              th:text="${finding.dimension}">SECURITY</span>
+                    </div>
+                </div>
+                
+                <div class="finding-meta">
+                    <strong>文件:</strong> 
+                    <code th:text="${finding.file}">src/main/java/Example.java</code>
+                    <span th:if="${finding.startLine > 0}">
+                        (第 <span th:text="${finding.startLine}">25</span><span th:if="${finding.endLine != finding.startLine}">-<span th:text="${finding.endLine}">28</span></span> 行)
+                    </span>
+                    |
+                    <strong>置信度:</strong> 
+                    <span th:text="${#numbers.formatPercent(finding.confidence, 1, 1)}">85%</span>
+                    <span th:if="${finding.sources != null and !finding.sources.empty}">
+                        | <strong>来源:</strong> <span th:text="${#strings.listJoin(finding.sources, ', ')}">scanner1, scanner2</span>
+                    </span>
+                </div>
+                
+                <div class="finding-description">
+                    <strong>问题描述:</strong><br>
+                    <span th:text="${finding.evidence}">检测到的问题证据</span>
+                </div>
+                
+                <div class="finding-description" th:if="${finding.suggestion}">
+                    <strong>修复建议:</strong><br>
+                    <span th:text="${finding.suggestion}">修复建议</span>
+                </div>
+                
+                <div th:if="${finding.patch != null and !finding.patch.empty}" class="mt-2">
+                    <details>
+                        <summary class="btn btn-outline btn-sm">查看建议补丁</summary>
+                        <pre class="mt-2" style="background: var(--bg-tertiary); padding: 1rem; border-radius: var(--radius-md); overflow-x: auto; font-size: 0.875rem;"><code th:text="${finding.patch}">建议的代码补丁</code></pre>
+                    </details>
+                </div>
+                
+                <div class="mt-2" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                    <button class="btn btn-outline btn-sm" 
+                            th:data-copy="${finding.file + ':' + finding.startLine + ' - ' + finding.title}"
+                            title="复制问题信息">
+                        📋 复制
+                    </button>
+                    <button class="btn btn-outline btn-sm" 
+                            th:if="${finding.file != null and finding.startLine > 0}"
+                            onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none';"
+                            title="查看问题位置">
+                        📍 定位
+                    </button>
+                    <div style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: var(--bg-secondary); border-radius: var(--radius-sm); font-size: 0.75rem;">
+                        <strong>文件位置:</strong> <code th:text="${finding.file}">文件路径</code><br>
+                        <strong>行号:</strong> <span th:text="${finding.startLine}">25</span><span th:if="${finding.endLine != finding.startLine}"> - <span th:text="${finding.endLine}">28</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 空状态 -->
+        <div th:if="${findings == null or findings.empty}" class="text-center text-muted" style="padding: 2rem;">
+            <div style="font-size: 2rem; margin-bottom: 1rem;">✅</div>
+            <h3>无问题发现</h3>
+            <p>此次代码评审没有发现任何问题，代码质量良好！</p>
+        </div>
+    </div>
+    
+    <!-- 错误片段 -->
+    <div th:fragment="error" class="text-center text-muted" style="padding: 2rem;">
+        <div style="font-size: 2rem; margin-bottom: 1rem;">⚠️</div>
+        <h3>加载失败</h3>
+        <p th:text="${error}">问题列表加载失败，请稍后重试</p>
+        <button onclick="location.reload()" class="btn btn-primary mt-2">重新加载</button>
+    </div>
+</body>
+</html>

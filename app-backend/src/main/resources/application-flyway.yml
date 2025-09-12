@@ -1,0 +1,31 @@
+# Flyway Migration Configuration
+spring:
+  application:
+    name: ai-reviewer-backend-flyway
+  
+  datasource:
+    url: jdbc:mysql://localhost:3306/ai_reviewer?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration
+    schemas: ai_reviewer
+    table: flyway_schema_history
+    encoding: UTF-8
+    validate-on-migrate: true
+    clean-disabled: true
+    url: jdbc:mysql://localhost:3306/ai_reviewer?useSSL=false&allowPublicKeyRetrieval=true
+    user: root
+    password: root
+
+# Logging Configuration
+logging:
+  level:
+    org.flywaydb: DEBUG
+    com.mysql: DEBUG
+    org.springframework.boot.autoconfigure.flyway: DEBUG

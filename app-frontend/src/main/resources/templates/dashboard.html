@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN" 
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仪表板 - AI Reviewer</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script th:src="@{/js/charts.js}"></script>
+    <meta name="htmx-config" content='{"globalViewTransitions":true}'>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-content">
+                <a class="navbar-brand" th:href="@{/dashboard}">
+                    🤖 AI Reviewer
+                </a>
+                <ul class="navbar-nav" sec:authorize="isAuthenticated()">
+                    <li><a class="nav-link active" th:href="@{/dashboard}">仪表板</a></li>
+                    <li class="nav-item">
+                        <span class="nav-link" sec:authentication="name">用户</span>
+                    </li>
+                    <li class="nav-item">
+                        <form th:action="@{/logout}" method="post" style="display: inline;">
+                            <button type="submit" class="btn btn-outline btn-sm">退出登录</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- 页面标题 -->
+            <div class="mb-4">
+                <h1>评审运行历史</h1>
+                <p class="text-muted">查看和管理代码评审运行记录</p>
+            </div>
+            
+            <!-- 错误消息 -->
+            <div th:if="${error}" class="alert alert-error mb-3">
+                <span th:text="${error}">错误消息</span>
+            </div>
+            
+            <!-- 过滤器 -->
+            <div class="filters">
+                <form hx-get="/dashboard/page" 
+                      hx-target="#runs-table-container" 
+                      hx-trigger="submit, input delay:500ms from:input"
+                      hx-indicator="#loading-indicator">
+                    <div class="filters-grid">
+                        <div class="form-group">
+                            <label for="repo" class="form-label">仓库筛选</label>
+                            <input type="text" 
+                                   id="repo" 
+                                   name="repo" 
+                                   class="form-control" 
+                                   placeholder="输入仓库名称筛选..."
+                                   th:value="${repoFilter}">
+                        </div>
+                        <div class="form-group">
+                            <label for="platform" class="form-label">平台筛选</label>
+                            <select id="platform" name="platform" class="form-control">
+                                <option value="">全部平台</option>
+                                <option value="GitHub" th:selected="${platformFilter == 'GitHub'}">GitHub</option>
+                                <option value="GitLab" th:selected="${platformFilter == 'GitLab'}">GitLab</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">筛选</button>
+                        </div>
+                    </div>
+                    <input type="hidden" name="page" value="0">
+                    <input type="hidden" name="size" th:value="${pageSize}">
+                </form>
+            </div>
+            
+            <!-- 运行记录表格 -->
+            <div id="runs-table-container">
+                <div th:replace="~{fragments/runs-table :: runs-table}"></div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- 加载指示器 -->
+    <div id="loading-indicator" class="loading" style="display: none; position: fixed; top: 20px; right: 20px; z-index: 9999;">
+        <div class="spinner"></div>
+        <span>加载中...</span>
+    </div>
+</body>
+</html>

@@ -1,0 +1,48 @@
+# AI 评审系统配置示例
+# 放在仓库根目录的 .ai-review.yml 文件
+
+# SCM 提供商 (github | gitlab)
+provider: github
+
+# LLM 配置
+llm:
+  # 支持的适配器列表
+  adapters: 
+    - gpt4o
+    - claude35
+    - local-qwen
+  # 预算限制（美元）
+  budget_usd: 0.25
+
+# 评分配置
+scoring:
+  # 维度权重（必须总和为 1.0）
+  weights:
+    SECURITY: 0.30
+    QUALITY: 0.25
+    MAINTAINABILITY: 0.20
+    PERFORMANCE: 0.15
+    TEST_COVERAGE: 0.10
+  
+  # 严重性惩罚分数（递增）
+  severityPenalty:
+    INFO: 1
+    MINOR: 3
+    MAJOR: 7
+    CRITICAL: 12
+  
+  # 忽略置信度阈值
+  ignoreConfidenceBelow: 0.3
+
+# 报告配置
+report:
+  # 导出格式配置
+  export:
+    # SARIF 2.1.0 格式
+    sarif: true
+    # JSON 格式（单一事实源）
+    json: true
+    # PDF 格式
+    pdf: true
+    # HTML 格式
+    html: true
