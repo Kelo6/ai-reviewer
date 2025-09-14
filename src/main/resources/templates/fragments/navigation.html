@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN" 
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<!-- 主导航栏 -->
+<nav th:fragment="main-navigation" class="navbar">
+    <div class="container">
+        <div class="navbar-content">
+            <!-- 品牌Logo -->
+            <a class="navbar-brand" th:href="@{/dashboard}">
+                🤖 AI Reviewer
+            </a>
+            
+            <!-- 移动端菜单按钮 -->
+            <button class="navbar-toggle" onclick="toggleMobileMenu()">
+                <span class="hamburger"></span>
+                <span class="hamburger"></span>
+                <span class="hamburger"></span>
+            </button>
+            
+            <!-- 导航菜单 -->
+            <div class="navbar-menu" id="navbar-menu">
+                <ul class="navbar-nav">
+                    <!-- 仪表板 -->
+                    <li class="nav-item">
+                        <a class="nav-link" 
+                           th:href="@{/dashboard}"
+                           th:classappend="${#request.requestURI == '/dashboard' or #request.requestURI == '/' ? 'active' : ''}">
+                            <span class="nav-icon">📊</span>
+                            <span class="nav-text">仪表板</span>
+                        </a>
+                    </li>
+                    
+                    <!-- 配置管理 -->
+                    <li class="nav-item">
+                        <a class="nav-link" 
+                           th:href="@{/config}"
+                           th:classappend="${#strings.startsWith(#request.requestURI, '/config') ? 'active' : ''}">
+                            <span class="nav-icon">⚙️</span>
+                            <span class="nav-text">配置管理</span>
+                        </a>
+                    </li>
+                    
+                    <!-- 模型管理 -->
+                    <li class="nav-item">
+                        <a class="nav-link" 
+                           th:href="@{/models}"
+                           th:classappend="${#strings.startsWith(#request.requestURI, '/models') ? 'active' : ''}">
+                            <span class="nav-icon">🤖</span>
+                            <span class="nav-text">模型管理</span>
+                        </a>
+                    </li>
+                    
+                    <!-- API 文档 -->
+                    <li class="nav-item">
+                        <a class="nav-link" 
+                           th:href="@{/api-docs}"
+                           th:classappend="${#strings.startsWith(#request.requestURI, '/api-docs') ? 'active' : ''}">
+                            <span class="nav-icon">📖</span>
+                            <span class="nav-text">API文档</span>
+                        </a>
+                    </li>
+                    
+                    <!-- 系统监控 -->
+                    <li class="nav-item">
+                        <a class="nav-link" 
+                           th:href="@{/actuator/health}"
+                           target="_blank">
+                            <span class="nav-icon">💻</span>
+                            <span class="nav-text">系统监控</span>
+                        </a>
+                    </li>
+                    
+                    <!-- 分隔符 -->
+                    <li class="nav-divider"></li>
+                    
+                    <!-- 用户信息 (仅登录时显示) -->
+                    <li class="nav-item user-menu" sec:authorize="isAuthenticated()">
+                        <div class="nav-link user-info" onclick="toggleUserMenu()">
+                            <span class="nav-icon">👤</span>
+                            <span class="nav-text" sec:authentication="name">用户</span>
+                            <span class="dropdown-arrow">▼</span>
+                        </div>
+                        <div class="user-dropdown" id="user-dropdown">
+                            <a th:href="@{/profile}" class="dropdown-item">
+                                <span class="dropdown-icon">📋</span>
+                                个人资料
+                            </a>
+                            <a th:href="@{/settings}" class="dropdown-item">
+                                <span class="dropdown-icon">⚙️</span>
+                                设置
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <form th:action="@{/logout}" method="post" class="dropdown-form">
+                                <button type="submit" class="dropdown-item logout-btn">
+                                    <span class="dropdown-icon">🚪</span>
+                                    退出登录
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                    
+                    <!-- 登录按钮 (未登录时显示) -->
+                    <li class="nav-item" sec:authorize="!isAuthenticated()">
+                        <a class="nav-link btn-login" th:href="@{/login}">
+                            <span class="nav-icon">🔐</span>
+                            <span class="nav-text">登录</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- 面包屑导航 -->
+<nav th:fragment="breadcrumb-navigation(breadcrumbs)" th:if="${breadcrumbs != null}" class="breadcrumb-nav">
+    <div class="container">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a th:href="@{/dashboard}">🏠 首页</a>
+            </li>
+            <li th:each="crumb, iterStat : ${breadcrumbs}" 
+                class="breadcrumb-item"
+                th:classappend="${iterStat.last ? 'active' : ''}">
+                <a th:if="${!iterStat.last && crumb.url != null}" 
+                   th:href="${crumb.url}" 
+                   th:text="${crumb.text}">链接</a>
+                <span th:if="${iterStat.last || crumb.url == null}" 
+                      th:text="${crumb.text}">当前页</span>
+            </li>
+        </ol>
+    </div>
+</nav>
+
+<!-- 页面标题栏 -->
+<div th:fragment="page-header(title, subtitle, actions)" class="page-header">
+    <div class="container">
+        <div class="page-header-content">
+            <div class="page-title-section">
+                <h1 class="page-title" th:text="${title}">页面标题</h1>
+                <p th:if="${subtitle}" class="page-subtitle" th:text="${subtitle}">页面副标题</p>
+            </div>
+            <div th:if="${actions}" class="page-actions" th:utext="${actions}">
+                <!-- 页面操作按钮 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 导航相关的JavaScript -->
+<script th:fragment="navigation-scripts">
+    // 移动端菜单切换
+    function toggleMobileMenu() {
+        const menu = document.getElementById('navbar-menu');
+        menu.classList.toggle('active');
+    }
+    
+    // 用户菜单切换
+    function toggleUserMenu() {
+        const dropdown = document.getElementById('user-dropdown');
+        dropdown.classList.toggle('active');
+    }
+    
+    // 点击外部关闭菜单
+    document.addEventListener('click', function(event) {
+        const userMenu = document.querySelector('.user-menu');
+        const dropdown = document.getElementById('user-dropdown');
+        const mobileMenu = document.getElementById('navbar-menu');
+        const toggleButton = document.querySelector('.navbar-toggle');
+        
+        // 关闭用户下拉菜单
+        if (userMenu && !userMenu.contains(event.target)) {
+            dropdown?.classList.remove('active');
+        }
+        
+        // 关闭移动端菜单
+        if (toggleButton && !toggleButton.contains(event.target) && !mobileMenu?.contains(event.target)) {
+            mobileMenu?.classList.remove('active');
+        }
+    });
+    
+    // 页面加载完成后的初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        // 高亮当前页面菜单
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('.nav-link');
+        
+        navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (href && (currentPath === href || (href !== '/dashboard' && currentPath.startsWith(href)))) {
+                link.classList.add('active');
+            }
+        });
+    });
+</script>
+
+</html>

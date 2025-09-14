@@ -25,8 +25,35 @@ import com.ai.reviewer.shared.model.RepoRef;
 public record ParsedEvent(
     String type,
     RepoRef repo,
-    PullRef pull
+    PullRef pull,
+    DiffInfo diffInfo
 ) {
+    
+    // 兼容性构造器（不包含diff信息）
+    public ParsedEvent(String type, RepoRef repo, PullRef pull) {
+        this(type, repo, pull, null);
+    }
+    
+    /**
+     * Diff信息记录
+     */
+    public static record DiffInfo(
+        String content,
+        java.util.List<FileChange> files
+    ) {
+        
+        /**
+         * 文件变更信息
+         */
+        public static record FileChange(
+            String filename,
+            String status,
+            int additions,
+            int deletions,
+            int changes,
+            String patch
+        ) {}
+    }
     
     /**
      * Check if this event is related to a pull request.

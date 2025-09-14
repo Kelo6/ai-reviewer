@@ -118,8 +118,19 @@ public class ReviewRunMapper {
             entity.setTokenCostUsd(BigDecimal.valueOf(stats.tokenCostUsd()));
         }
 
-        // Total score
-        entity.setTotalScore(BigDecimal.valueOf(record.scores().totalScore()));
+        // Total score (with null check)
+        if (record.scores() != null) {
+            entity.setTotalScore(BigDecimal.valueOf(record.scores().totalScore()));
+            
+            // 🔧 Fix: 转换并设置维度评分
+            List<com.ai.reviewer.backend.infra.jpa.entity.ScoreEntity> scoreEntities = 
+                scoreMapper.toEntities(record.scores());
+            // 设置关联关系
+            scoreEntities.forEach(scoreEntity -> scoreEntity.setReviewRun(entity));
+            entity.setScores(scoreEntities);
+        } else {
+            entity.setTotalScore(BigDecimal.ZERO);
+        }
 
         // Set status (default to COMPLETED for imported records)
         entity.setStatus(ReviewRunEntity.ReviewRunStatus.COMPLETED);
@@ -148,7 +159,20 @@ public class ReviewRunMapper {
             entity.setTokenCostUsd(BigDecimal.valueOf(stats.tokenCostUsd()));
         }
 
-        entity.setTotalScore(BigDecimal.valueOf(record.scores().totalScore()));
+        // Total score (with null check)
+        if (record.scores() != null) {
+            entity.setTotalScore(BigDecimal.valueOf(record.scores().totalScore()));
+            
+            // 🔧 Fix: 更新维度评分
+            List<com.ai.reviewer.backend.infra.jpa.entity.ScoreEntity> scoreEntities = 
+                scoreMapper.toEntities(record.scores());
+            // 清除旧的scores并设置新的
+            entity.getScores().clear();
+            scoreEntities.forEach(scoreEntity -> scoreEntity.setReviewRun(entity));
+            entity.getScores().addAll(scoreEntities);
+        } else {
+            entity.setTotalScore(BigDecimal.ZERO);
+        }
         entity.setProviderKeysJson(serializeProviderKeys(record.providerKeys()));
     }
 

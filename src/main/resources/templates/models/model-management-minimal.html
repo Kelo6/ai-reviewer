@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN" 
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模型管理 - AI Reviewer</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2rem; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .model-item { border: 1px solid #ddd; padding: 1rem; margin: 1rem 0; border-radius: 4px; }
+        .error { color: red; padding: 1rem; border: 1px solid red; background: #ffe6e6; }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🤖 AI 模型管理</h1>
+        
+        <!-- 错误提示 -->
+        <div th:if="${error}" class="error">
+            <strong>错误:</strong> <span th:text="${error}">错误信息</span>
+        </div>
+        
+        <!-- 统计信息 -->
+        <div th:if="${statistics}">
+            <h2>📊 统计信息</h2>
+            <p>总模型数: <strong th:text="${statistics.totalModels ?: 0}">0</strong></p>
+            <p>已启用: <strong th:text="${statistics.enabledModels ?: 0}">0</strong></p>
+            <p>已连接: <strong th:text="${statistics.connectedModels ?: 0}">0</strong></p>
+        </div>
+        
+        <!-- 模型列表 -->
+        <div th:if="${models and !models.empty}">
+            <h2>📋 模型列表</h2>
+            <div th:each="model : ${models}" class="model-item">
+                <h3 th:text="${model.name ?: '未命名模型'}">模型名称</h3>
+                <p><strong>ID:</strong> <span th:text="${model.id ?: 'N/A'}">ID</span></p>
+                <p><strong>类型:</strong> <span th:text="${model.type ?: 'N/A'}">类型</span></p>
+                <p><strong>状态:</strong> <span th:text="${model.enabled ? '✅ 已启用' : '❌ 已禁用'}">状态</span></p>
+                <p th:if="${model.description}"><strong>描述:</strong> <span th:text="${model.description}">描述</span></p>
+            </div>
+        </div>
+        
+        <!-- 空状态 -->
+        <div th:unless="${models and !models.empty}">
+            <h2>📝 无模型配置</h2>
+            <p>当前没有配置任何模型。</p>
+        </div>
+        
+        <hr>
+        <p><a href="/dashboard">← 返回仪表板</a></p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,109 @@
+{
+  "action": "opened",
+  "number": 1,
+  "pull_request": {
+    "id": 123456789,
+    "number": 1,
+    "state": "open",
+    "title": "Enhanced security and validation improvements",
+    "user": {
+      "login": "test-user",
+      "id": 12345,
+      "type": "User"
+    },
+    "body": "This PR enhances security and adds comprehensive validation:\n\n## 🔒 Security Improvements\n- Added OAuth2 security configuration\n- Implemented BCrypt password hashing\n- Added request authorization rules\n\n## ✅ Input Validation\n- Added comprehensive user ID validation\n- Implemented email format validation  \n- Added password strength requirements\n- Added input sanitization methods\n\n## 📊 Logging & Monitoring\n- Added SLF4J logging throughout UserService\n- Added debug/warn/error log levels\n- Configured detailed application logging\n\n## 🏗️ Architecture\n- Separated validation logic into private methods\n- Added proper exception handling\n- Improved code maintainability\n\nThis change significantly improves the application's security posture and code quality.",
+    "created_at": "2024-09-14T10:30:00Z",
+    "updated_at": "2024-09-14T10:30:00Z",
+    "head": {
+      "label": "test-user:feature-security-enhancements",
+      "ref": "feature-security-enhancements",
+      "sha": "abc123def456789abcdef123456789abcdef1234",
+      "repo": {
+        "id": 987654321,
+        "name": "test-repo",
+        "full_name": "test-user/test-repo",
+        "owner": {
+          "login": "test-user",
+          "id": 12345,
+          "type": "User"
+        },
+        "html_url": "https://github.com/test-user/test-repo",
+        "clone_url": "https://github.com/test-user/test-repo.git",
+        "default_branch": "main"
+      }
+    },
+    "base": {
+      "label": "test-user:main", 
+      "ref": "main",
+      "sha": "def456abc789def456abc789def456abc789def4",
+      "repo": {
+        "id": 987654321,
+        "name": "test-repo",
+        "full_name": "test-user/test-repo",
+        "owner": {
+          "login": "test-user",
+          "id": 12345,
+          "type": "User"
+        },
+        "html_url": "https://github.com/test-user/test-repo",
+        "clone_url": "https://github.com/test-user/test-repo.git",
+        "default_branch": "main"
+      }
+    },
+    "merged": false,
+    "mergeable": true,
+    "draft": false,
+    "commits": 5,
+    "additions": 87,
+    "deletions": 10,
+    "changed_files": 3,
+    "diff_content": "Enhanced security and validation in UserService with comprehensive logging, input sanitization, and added OAuth2 security configuration",
+    "files": [
+      {
+        "filename": "src/main/java/com/example/UserService.java",
+        "status": "modified",
+        "additions": 45,
+        "deletions": 8,
+        "changes": 53,
+        "patch": "@@ -28,7 +28,35 @@ public class UserService {\n     private final UserRepository userRepository;\n     private final EmailService emailService;\n+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);\n \n-    public User findUser(String id) {\n-        return userRepository.findById(id);\n+    public User findUser(String userId) {\n+        // Add comprehensive input validation\n+        if (userId == null || userId.trim().isEmpty()) {\n+            logger.error(\"Invalid user ID provided: {}\", userId);\n+            throw new IllegalArgumentException(\"User ID cannot be null or empty\");\n+        }\n+        \n+        if (userId.length() > 255) {\n+            logger.warn(\"User ID too long: {} characters\", userId.length());\n+            throw new IllegalArgumentException(\"User ID cannot exceed 255 characters\");\n+        }\n+        \n+        logger.debug(\"Searching for user with ID: {}\", userId);\n+        User user = userRepository.findById(userId);\n+        \n+        if (user == null) {\n+            logger.warn(\"User not found with ID: {}\", userId);\n+            return null;\n+        }\n+        \n+        logger.debug(\"Found user: {}\", user.getUsername());\n+        return user;\n     }"
+      },
+      {
+        "filename": "src/main/java/com/example/SecurityConfig.java",
+        "status": "added",
+        "additions": 25,
+        "deletions": 0,
+        "changes": 25,
+        "patch": "@@ -0,0 +1,25 @@\n+package com.example;\n+\n+@Configuration\n+@EnableWebSecurity\n+public class SecurityConfig {\n+    \n+    @Bean\n+    public PasswordEncoder passwordEncoder() {\n+        return new BCryptPasswordEncoder(12);\n+    }\n+    \n+    @Bean\n+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {\n+        http\n+            .authorizeHttpRequests(authz -> authz\n+                .requestMatchers(\"/api/public/**\").permitAll()\n+                .requestMatchers(\"/admin/**\").hasRole(\"ADMIN\")\n+                .anyRequest().authenticated()\n+            )\n+            .oauth2Login(oauth2 -> oauth2\n+                .loginPage(\"/login\")\n+                .defaultSuccessUrl(\"/dashboard\")\n+            );\n+        return http.build();\n+    }\n+}"
+      },
+      {
+        "filename": "src/main/resources/application.yml",
+        "status": "modified", 
+        "additions": 17,
+        "deletions": 2,
+        "changes": 19,
+        "patch": "@@ -10,5 +10,22 @@ spring:\n   datasource:\n     url: jdbc:mysql://localhost:3306/testdb\n-    username: ${DB_USER:user}\n-    password: ${DB_PASS:pass}\n+    username: ${DB_USER:root}\n+    password: ${DB_PASS:}\n+    hikari:\n+      maximum-pool-size: 20\n+      minimum-idle: 5\n+      connection-timeout: 30000\n+  \n+  # Add caching configuration\n+  cache:\n+    type: caffeine\n+    caffeine:\n+      spec: maximumSize=1000,expireAfterAccess=300s\n+      \n+  # Security configuration\n+  security:\n+    oauth2:\n+      client:\n+        registration:\n+          google:\n+            client-id: ${GOOGLE_CLIENT_ID:}\n+            client-secret: ${GOOGLE_CLIENT_SECRET:}\n+            \n+logging:\n+  level:\n+    com.example: DEBUG\n+    org.springframework.security: DEBUG"
+      }
+    ]
+  },
+  "repository": {
+    "id": 987654321,
+    "name": "test-repo",
+    "full_name": "test-user/test-repo",
+    "owner": {
+      "login": "test-user",
+      "id": 12345,
+      "type": "User"
+    },
+    "private": false,
+    "html_url": "https://github.com/test-user/test-repo",
+    "description": "Test repository for AI code review with enhanced security features",
+    "clone_url": "https://github.com/test-user/test-repo.git",
+    "default_branch": "main",
+    "language": "Java"
+  },
+  "sender": {
+    "login": "test-user",
+    "id": 12345,
+    "type": "User"
+  }
+}

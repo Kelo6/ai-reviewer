@@ -33,6 +33,14 @@ public class WebSecurityConfig {
     @Bean
     @Order(1)
     public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
+        if (!securityEnabled) {
+            // 如果安全功能被禁用，允许所有API请求
+            http.securityMatcher("/api/**")
+                .authorizeHttpRequests(authz -> authz.anyRequest().permitAll())
+                .csrf(csrf -> csrf.disable());
+            return http.build();
+        }
+        
         // API endpoints (REST API) - separate security config
         http.securityMatcher("/api/**")
             .authorizeHttpRequests(authz -> authz
@@ -85,7 +93,7 @@ public class WebSecurityConfig {
                 .maxSessionsPreventsLogin(false)
             )
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/download/**", "/api/**") // 下载请求和API不需要CSRF
+                .ignoringRequestMatchers("/download/**", "/api/**", "/config/scm/**") // 下载请求、API和配置不需要CSRF
             );
         
         return http.build();

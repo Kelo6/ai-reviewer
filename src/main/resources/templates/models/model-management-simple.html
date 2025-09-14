@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN" 
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模型管理 - AI Reviewer</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+
+<body>
+    <!-- 导航栏 -->
+    <div th:replace="~{fragments/navigation :: main-navigation}"></div>
+    
+    <main class="main-content">
+        <div class="container">
+            <h1>模型管理</h1>
+            
+            <!-- 错误提示 -->
+            <div th:if="${error}" class="alert alert-danger">
+                <p th:text="${error}">错误信息</p>
+            </div>
+            
+            <!-- 统计信息 -->
+            <div th:if="${statistics}" class="row">
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <h3 th:text="${statistics.totalModels ?: 0}">0</h3>
+                        <p>总模型数</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <h3 th:text="${statistics.enabledModels ?: 0}">0</h3>
+                        <p>已启用</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <h3 th:text="${statistics.connectedModels ?: 0}">0</h3>
+                        <p>已连接</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <h3 th:text="${statistics.averageResponseTime ?: 0}">0</h3>
+                        <p>平均响应时间(ms)</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 操作栏 -->
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="alert('添加模型功能')">
+                    ➕ 添加模型
+                </button>
+                <button class="btn btn-secondary" onclick="location.reload()">
+                    🔄 刷新
+                </button>
+            </div>
+            
+            <!-- AI模型列表 -->
+            <div th:if="${aiModels}" class="section">
+                <h2>🤖 AI 模型</h2>
+                <div class="model-list">
+                    <div th:each="model : ${aiModels}" class="model-item">
+                        <div class="model-header">
+                            <h3 th:text="${model.name ?: '未知模型'}">模型名称</h3>
+                            <span th:text="${model.enabled ? '✅ 已启用' : '❌ 已禁用'}">状态</span>
+                        </div>
+                        <p th:text="${model.description ?: '无描述'}">描述</p>
+                        <div class="model-meta">
+                            <span>类型: <span th:text="${model.type?.name ?: '未知'}">类型</span></span>
+                            <span>状态: <span th:text="${model.status?.name ?: '未知'}">状态</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 静态分析工具列表 -->
+            <div th:if="${staticAnalyzers}" class="section">
+                <h2>🔍 静态分析工具</h2>
+                <div class="model-list">
+                    <div th:each="model : ${staticAnalyzers}" class="model-item">
+                        <div class="model-header">
+                            <h3 th:text="${model.name ?: '未知工具'}">工具名称</h3>
+                            <span th:text="${model.enabled ? '✅ 已启用' : '❌ 已禁用'}">状态</span>
+                        </div>
+                        <p th:text="${model.description ?: '无描述'}">描述</p>
+                        <div class="model-meta">
+                            <span>类型: <span th:text="${model.type?.name ?: '未知'}">类型</span></span>
+                            <span>状态: <span th:text="${model.status?.name ?: '未知'}">状态</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 空状态 -->
+            <div th:if="${!models or models.empty}" class="empty-state">
+                <div class="text-center">
+                    <h3>🤖 还没有配置模型</h3>
+                    <p>点击"添加模型"按钮开始配置您的第一个AI模型或静态分析工具</p>
+                    <button class="btn btn-primary" onclick="alert('添加模型功能')">
+                        ➕ 添加模型
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <style>
+        .stat-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .action-bar {
+            margin: 2rem 0;
+            text-align: center;
+        }
+        .action-bar .btn {
+            margin: 0 0.5rem;
+        }
+        .section {
+            margin: 2rem 0;
+        }
+        .model-list {
+            display: grid;
+            gap: 1rem;
+        }
+        .model-item {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        .model-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .model-meta {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .model-meta span {
+            margin-right: 1rem;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #666;
+        }
+        .alert {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</body>
+</html>

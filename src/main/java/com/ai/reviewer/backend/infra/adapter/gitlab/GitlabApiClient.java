@@ -5,6 +5,7 @@ import org.gitlab4j.api.GitLabApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import javax.net.ssl.*;
@@ -24,14 +25,32 @@ public class GitlabApiClient {
     private static final Logger logger = LoggerFactory.getLogger(GitlabApiClient.class);
     
     private final GitlabConfig config;
+    private final Environment environment;
     private volatile GitLabApi gitLabApi;
     
     @Autowired
-    public GitlabApiClient(GitlabConfig config) {
+    public GitlabApiClient(GitlabConfig config, Environment environment) {
         this.config = config;
-        config.validate(); // Validate configuration on startup
+        this.environment = environment;
+        
+        // Skip validation in test and dev profiles
+        if (!isTestProfile()) {
+            config.validate(); // Validate configuration on startup
+        } else {
+            logger.info("Skipping GitLab configuration validation in test/dev profile");
+        }
         
         logger.info("GitLab API client initialized: {}", config.getConfigSummary());
+    }
+    
+    private boolean isTestProfile() {
+        String[] activeProfiles = environment.getActiveProfiles();
+        for (String profile : activeProfiles) {
+            if ("test".equals(profile) || "dev".equals(profile)) {
+                return true;
+            }
+        }
+        return false;
     }
     
     /**

@@ -115,6 +115,9 @@ public class MockAiReviewer implements AiReviewer {
     @Override
     public CompletableFuture<List<Finding>> reviewAsync(StaticAnalyzer.CodeSegment segment, AiReviewer.ReviewContext context) {
         return CompletableFuture.supplyAsync(() -> {
+            logger.info("🔍 Mock AI reviewer analyzing single segment: {} (lines {}-{})", 
+                segment.filePath(), segment.startLine(), segment.endLine());
+            
             List<Finding> findings = new ArrayList<>();
             
             // Generate a mock AI finding for the code segment
@@ -140,6 +143,9 @@ public class MockAiReviewer implements AiReviewer {
     @Override
     public CompletableFuture<List<Finding>> reviewBatchAsync(List<StaticAnalyzer.CodeSegment> segments, AiReviewer.ReviewContext context) {
         return CompletableFuture.supplyAsync(() -> {
+            logger.info("🤖 Mock AI reviewer batch analyzing {} code segments for PR {}/{}#{}", 
+                segments.size(), context.repository().owner(), context.repository().name(), context.pullRequest().number());
+            
             List<Finding> findings = new ArrayList<>();
             
             for (StaticAnalyzer.CodeSegment segment : segments) {
@@ -158,6 +164,9 @@ public class MockAiReviewer implements AiReviewer {
                     0.75
                 ));
             }
+            
+            logger.info("✅ Mock AI reviewer batch found {} findings from {} segments", 
+                findings.size(), segments.size());
             
             return findings;
         });

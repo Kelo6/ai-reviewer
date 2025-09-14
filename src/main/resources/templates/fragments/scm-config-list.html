@@ -1,0 +1,73 @@
+<!-- SCM配置列表片段 -->
+<div th:fragment="scm-config-list">
+    <!-- 成功消息 -->
+    <div th:if="${success}" class="alert alert-success">
+        <span th:text="${success}">成功消息</span>
+    </div>
+    
+    <!-- 错误消息 -->
+    <div th:if="${error}" class="alert alert-error">
+        <span th:text="${error}">错误消息</span>
+    </div>
+    
+    <div th:each="config : ${scmConfigs}" class="provider-item"
+         th:attr="data-provider=${config.provider}"
+         hx-get="/config/scm/{provider}/form"
+         th:hx-vals="'provider':${config.provider}"
+         hx-target="#config-form"
+         onclick="document.querySelectorAll('.provider-item').forEach(el => el.classList.remove('active')); this.classList.add('active');">
+        
+        <div class="provider-info">
+            <div class="provider-icon" th:classappend="${config.provider}">
+                <span th:switch="${config.provider}">
+                    <span th:case="'github'">🐙</span>
+                    <span th:case="'gitlab'">🦊</span>
+                    <span th:case="'bitbucket'">⚡</span>
+                    <span th:case="'gitea'">🌲</span>
+                    <span th:case="'custom-git'">🔧</span>
+                    <span th:case="*">📁</span>
+                </span>
+            </div>
+            
+            <div>
+                <div style="font-weight: 500;" th:text="${config.displayName}">GitHub</div>
+                <div style="font-size: 0.75rem; color: #6b7280;" th:text="${config.provider}">github</div>
+            </div>
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <!-- 状态徽章 -->
+            <span class="status-badge" 
+                  th:classappend="'status-' + ${config.status}"
+                  th:text="${config.statusMessage}"
+                  th:title="${config.statusMessage}">
+                未配置
+            </span>
+            
+            <!-- 启用/禁用开关 -->
+            <label style="display: flex; align-items: center; cursor: pointer; margin: 0;">
+                <input type="checkbox" 
+                       th:checked="${config.enabled}"
+                       th:onchange="'toggleProvider(\'' + ${config.provider} + '\')'"
+                       style="margin-right: 0.25rem;">
+                <span style="font-size: 0.75rem; color: #6b7280;">启用</span>
+            </label>
+        </div>
+    </div>
+    
+    <!-- 如果没有配置 -->
+    <div th:if="${#lists.isEmpty(scmConfigs)}" 
+         style="text-align: center; padding: 2rem; color: #6b7280;">
+        <p>暂无配置</p>
+    </div>
+</div>
+
+<script>
+    // 页面加载后触发第一个配置项的选择
+    document.addEventListener('DOMContentLoaded', function() {
+        const firstProvider = document.querySelector('.provider-item');
+        if (firstProvider && !document.querySelector('.provider-item.active')) {
+            firstProvider.click();
+        }
+    });
+</script>

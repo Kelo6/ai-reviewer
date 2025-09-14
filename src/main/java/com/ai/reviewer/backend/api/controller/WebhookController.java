@@ -278,8 +278,12 @@ public class WebhookController {
                 return "Missing repository or pull request information";
             }
             
-            // Trigger AI review asynchronously
-            reviewService.triggerReview(event.repo(), event.pull());
+            // Trigger AI review asynchronously with diff info
+            if (event.diffInfo() != null) {
+                logger.debug("Passing diff info to review service: {} files", 
+                    event.diffInfo().files() != null ? event.diffInfo().files().size() : 0);
+            }
+            reviewService.triggerReview(event.repo(), event.pull(), event.diffInfo());
             
             return String.format("AI review triggered for PR %s/%s#%s", 
                     event.repo().owner(), 

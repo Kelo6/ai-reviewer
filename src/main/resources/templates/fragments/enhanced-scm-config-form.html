@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN" 
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<!-- GitHub 配置表单 -->
+<div th:fragment="github-form" th:if="${config != null and config.provider == 'github'}">
+    <form id="config-form" onsubmit="return false;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3>🐙 GitHub 配置</h3>
+            <div>
+                <button type="button" class="btn btn-primary" onclick="saveConfig()">保存</button>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h4>基础配置</h4>
+            <div class="form-group">
+                <label>显示名称</label>
+                <input type="text" name="displayName" th:value="${config.displayName}" placeholder="GitHub">
+            </div>
+            <div class="form-group">
+                <label>API 地址</label>
+                <input type="url" name="apiBase" th:value="${config.apiBase}" placeholder="https://api.github.com" required>
+            </div>
+            <div class="form-group">
+                <label>网站地址</label>
+                <input type="url" name="webBase" th:value="${config.webBase}" placeholder="https://github.com">
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h4>认证配置</h4>
+            <div class="form-group">
+                <label>Personal Access Token <span style="color: red;">*</span></label>
+                <input type="password" name="token" th:value="${config.token}" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" required>
+                <small>需要 repo 和 admin:repo_hook 权限</small>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h4>Webhook 配置</h4>
+            <div class="form-group">
+                <label>Webhook Secret (可选)</label>
+                <input type="password" name="webhookSecret" th:value="${config.webhookSecret}" placeholder="用于验证webhook请求">
+            </div>
+            <div class="form-group">
+                <label>Webhook URL</label>
+                <input type="text" readonly th:value="'http://localhost:8081/api/webhooks/github'" style="background-color: #f8f9fa;">
+                <small>在 GitHub 仓库设置中配置此 URL</small>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- GitLab 配置表单 -->
+<div th:fragment="gitlab-form" th:if="${config != null and config.provider == 'gitlab'}">
+    <form id="config-form" onsubmit="return false;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3>🦊 GitLab 配置</h3>
+            <div>
+                <button type="button" class="btn btn-primary" onclick="saveConfig()">保存</button>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h4>基础配置</h4>
+            <div class="form-group">
+                <label>显示名称</label>
+                <input type="text" name="displayName" th:value="${config.displayName}" placeholder="GitLab">
+            </div>
+            <div class="form-group">
+                <label>API 地址</label>
+                <input type="url" name="apiBase" th:value="${config.apiBase}" placeholder="https://gitlab.com/api/v4" required>
+            </div>
+            <div class="form-group">
+                <label>网站地址</label>
+                <input type="url" name="webBase" th:value="${config.webBase}" placeholder="https://gitlab.com">
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h4>认证配置</h4>
+            <div class="form-group">
+                <label>Personal Access Token <span style="color: red;">*</span></label>
+                <input type="password" name="token" th:value="${config.token}" placeholder="glpat-xxxxxxxxxxxxxxxxxxxx" required>
+                <small>需要 api, read_repository, write_repository 权限</small>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h4>高级配置</h4>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="sslVerify" th:checked="${config.sslVerify}"> 
+                    启用 SSL 证书验证
+                </label>
+            </div>
+            <div class="form-group">
+                <label>Webhook Secret (可选)</label>
+                <input type="password" name="webhookSecret" th:value="${config.webhookSecret}" placeholder="用于验证webhook请求">
+            </div>
+            <div class="form-group">
+                <label>Webhook URL</label>
+                <input type="text" readonly th:value="'http://localhost:8081/api/webhooks/gitlab'" style="background-color: #f8f9fa;">
+                <small>在 GitLab 项目设置中配置此 URL</small>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Bitbucket 配置表单 -->
+<div th:fragment="bitbucket-form" th:if="${config != null and config.provider == 'bitbucket'}">
+    <form id="config-form" onsubmit="return false;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3>🪣 Bitbucket 配置</h3>
+            <div>
+                <button type="button" class="btn btn-primary" onclick="saveConfig()">保存</button>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h4>基础配置</h4>
+            <div class="form-group">
+                <label>显示名称</label>
+                <input type="text" name="displayName" th:value="${config.displayName}" placeholder="Bitbucket">
+            </div>
+            <div class="form-group">
+                <label>API 地址</label>
+                <input type="url" name="apiBase" th:value="${config.apiBase}" placeholder="https://api.bitbucket.org/2.0" required>
+            </div>
+            <div class="form-group">
+                <label>网站地址</label>
+                <input type="url" name="webBase" th:value="${config.webBase}" placeholder="https://bitbucket.org">
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h4>认证配置</h4>
+            <div class="form-group">
+                <label>用户名 <span style="color: red;">*</span></label>
+                <input type="text" name="username" th:value="${config.username}" placeholder="your-username" required>
+            </div>
+            <div class="form-group">
+                <label>App Password <span style="color: red;">*</span></label>
+                <input type="password" name="appPassword" th:value="${config.appPassword}" placeholder="App Password" required>
+                <small>在 Bitbucket 账户设置中生成 App Password</small>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h4>Webhook 配置</h4>
+            <div class="form-group">
+                <label>Webhook URL</label>
+                <input type="text" readonly th:value="'http://localhost:8081/api/webhooks/bitbucket'" style="background-color: #f8f9fa;">
+                <small>在 Bitbucket 仓库设置中配置此 URL</small>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Gitea/自建Git 配置表单 -->
+<div th:fragment="gitea-form" th:if="${config != null and (config.provider == 'gitea' or config.provider == 'custom-git' or config.provider.startsWith('custom-'))}">
+    <form id="config-form" onsubmit="return false;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3>
+                <span th:switch="${config.provider}">
+                    <span th:case="'gitea'">🍃 Gitea</span>
+                    <span th:case="*">🔧 <span th:text="${config.displayName}">自定义Git</span></span>
+                </span>
+            </h3>
+            <div>
+                <button type="button" class="btn btn-primary" onclick="saveConfig()">保存</button>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h4>基础配置</h4>
+            <div class="form-group">
+                <label>显示名称</label>
+                <input type="text" name="displayName" th:value="${config.displayName}" placeholder="Gitea">
+            </div>
+            <div class="form-group">
+                <label>API 地址 <span style="color: red;">*</span></label>
+                <input type="url" name="apiBase" th:value="${config.apiBase}" placeholder="https://gitea.example.com/api/v1" required>
+            </div>
+            <div class="form-group">
+                <label>网站地址</label>
+                <input type="url" name="webBase" th:value="${config.webBase}" placeholder="https://gitea.example.com">
+            </div>
+            <div class="form-group">
+                <label>API 类型</label>
+                <select name="apiType" th:field="${config.apiType}">
+                    <option value="gitea">Gitea/Forgejo</option>
+                    <option value="gitlab">GitLab</option>
+                    <option value="github">GitHub Enterprise</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h4>认证配置</h4>
+            <div class="form-group">
+                <label>Personal Access Token <span style="color: red;">*</span></label>
+                <input type="password" name="token" th:value="${config.token}" placeholder="访问令牌" required>
+                <small>在个人设置中生成访问令牌，需要仓库相关权限</small>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h4>高级配置</h4>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="sslVerify" th:checked="${config.sslVerify}"> 
+                    启用 SSL 证书验证
+                </label>
+            </div>
+            <div class="form-group">
+                <label>Webhook Secret (可选)</label>
+                <input type="password" name="webhookSecret" th:value="${config.webhookSecret}" placeholder="用于验证webhook请求">
+            </div>
+            <div class="form-group">
+                <label>Webhook URL</label>
+                <input type="text" readonly th:value="'http://localhost:8081/api/webhooks/' + ${config.provider}" style="background-color: #f8f9fa;">
+                <small>在仓库设置中配置此 URL</small>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- 默认配置表单（当没有选择平台时） -->
+<div th:fragment="default-form" th:unless="${config != null}">
+    <div style="text-align: center; padding: 40px; color: #999;">
+        <h3>选择平台开始配置</h3>
+        <p>从左侧选择一个 Git 平台进行配置</p>
+    </div>
+</div>
+
+</html>

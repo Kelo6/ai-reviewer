@@ -229,7 +229,7 @@ public class MultiRepoAdapter {
     private RepoRef parseGitHubUrl(String url) {
         String[] parts = url.split("/");
         if (parts.length >= 3) {
-            return new RepoRef(parts[1], parts[2], "github", "https://" + url);
+            return new RepoRef("github", parts[1], parts[2], "https://" + url);
         }
         throw new ScmAdapterException("github", "parseUrl", "Invalid GitHub URL format: " + url);
     }
@@ -238,7 +238,7 @@ public class MultiRepoAdapter {
         String[] parts = url.split("/");
         if (parts.length >= 3) {
             String provider = url.contains("gitlab.com") ? "gitlab" : "gitlab-self-hosted";
-            return new RepoRef(parts[1], parts[2], provider, "https://" + url);
+            return new RepoRef(provider, parts[1], parts[2], "https://" + url);
         }
         throw new ScmAdapterException("gitlab", "parseUrl", "Invalid GitLab URL format: " + url);
     }
@@ -246,7 +246,7 @@ public class MultiRepoAdapter {
     private RepoRef parseBitbucketUrl(String url) {
         String[] parts = url.split("/");
         if (parts.length >= 3) {
-            return new RepoRef(parts[1], parts[2], "bitbucket", "https://" + url);
+            return new RepoRef("bitbucket", parts[1], parts[2], "https://" + url);
         }
         throw new ScmAdapterException("bitbucket", "parseUrl", "Invalid Bitbucket URL format: " + url);
     }
@@ -255,30 +255,44 @@ public class MultiRepoAdapter {
         String[] parts = url.split("/");
         if (parts.length >= 3) {
             // Default to gitea for custom Git servers
-            return new RepoRef(parts[1], parts[2], "gitea", "https://" + url);
+            return new RepoRef("gitea", parts[1], parts[2], "https://" + url);
         }
         throw new ScmAdapterException("custom", "parseUrl", "Invalid custom Git URL format: " + url);
     }
     
-    // Header extraction methods (to be implemented based on each provider's webhook format)
+    // Header extraction methods
     
     private RepoRef extractRepoFromGitHubHeaders(Map<String, String> headers) {
-        // Implementation depends on GitHub webhook payload structure
-        return null; // Placeholder
+        // For GitHub webhooks, we can create a basic RepoRef with provider info
+        // The actual repo info will be extracted from the payload later
+        logger.debug("Detected GitHub webhook from headers: {}", headers.get("X-GitHub-Event"));
+        
+        // Create a placeholder RepoRef for GitHub
+        // The actual owner/name will be extracted from the webhook payload
+        return new RepoRef("github", "unknown", "unknown", null);
     }
     
     private RepoRef extractRepoFromGitLabHeaders(Map<String, String> headers) {
-        // Implementation depends on GitLab webhook payload structure
-        return null; // Placeholder
+        // For GitLab webhooks
+        logger.debug("Detected GitLab webhook from headers: {}", headers.get("X-Gitlab-Event"));
+        
+        // Create a placeholder RepoRef for GitLab
+        return new RepoRef("gitlab", "unknown", "unknown", null);
     }
     
     private RepoRef extractRepoFromBitbucketHeaders(Map<String, String> headers) {
-        // Implementation depends on Bitbucket webhook payload structure
-        return null; // Placeholder
+        // For Bitbucket webhooks
+        logger.debug("Detected Bitbucket webhook from headers: {}", headers.get("X-Event-Key"));
+        
+        // Create a placeholder RepoRef for Bitbucket
+        return new RepoRef("bitbucket", "unknown", "unknown", null);
     }
     
     private RepoRef extractRepoFromGiteaHeaders(Map<String, String> headers) {
-        // Implementation depends on Gitea webhook payload structure
-        return null; // Placeholder
+        // For Gitea webhooks (similar to GitHub)
+        logger.debug("Detected Gitea webhook from headers: {}", headers.get("X-Gitea-Event"));
+        
+        // Create a placeholder RepoRef for Gitea
+        return new RepoRef("gitea", "unknown", "unknown", null);
     }
 }

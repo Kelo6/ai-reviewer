@@ -6,6 +6,7 @@ import org.kohsuke.github.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -38,6 +39,7 @@ public class GithubApiClient {
     private static final long INSTALLATION_TOKEN_CACHE_MINUTES = 50;
     
     private final GithubConfig config;
+    private final Environment environment;
     
     /** Cached GitHub instances per installation ID */
     private final ConcurrentMap<Integer, CachedGitHub> githubCache = new ConcurrentHashMap<>();
@@ -46,11 +48,28 @@ public class GithubApiClient {
     private final ConcurrentMap<Integer, CachedToken> tokenCache = new ConcurrentHashMap<>();
     
     @Autowired
-    public GithubApiClient(GithubConfig config) {
+    public GithubApiClient(GithubConfig config, Environment environment) {
         this.config = config;
-        config.validate(); // Validate configuration on startup
+        this.environment = environment;
+        
+        // Skip validation in test and dev profiles  
+        if (!isTestProfile()) {
+            config.validate(); // Validate configuration on startup
+        } else {
+            logger.info("Skipping GitHub configuration validation in test/dev profile");
+        }
         
         logger.info("GitHub API client initialized: {}", config.getConfigSummary());
+    }
+    
+    private boolean isTestProfile() {
+        String[] activeProfiles = environment.getActiveProfiles();
+        for (String profile : activeProfiles) {
+            if ("test".equals(profile) || "dev".equals(profile)) {
+                return true;
+            }
+        }
+        return false;
     }
     
     /**

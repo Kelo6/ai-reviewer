@@ -1,0 +1,243 @@
+<!-- SCM配置表单片段 -->
+<div th:fragment="scm-config-form">
+    <div th:if="${error}" class="alert alert-error">
+        <span th:text="${error}">错误消息</span>
+    </div>
+    
+    <div th:if="${config != null}">
+        <h3>
+            <span th:text="${config.displayName}">配置</span>
+            <span th:if="${isNew}" style="color: #6b7280; font-size: 0.875rem; font-weight: normal;">(新建)</span>
+        </h3>
+        
+        <form hx-post="/config/scm/save" 
+              hx-target="#provider-list"
+              hx-swap="innerHTML">
+            
+            <input type="hidden" name="provider" th:value="${config.provider}">
+            
+            <!-- 基础配置 -->
+            <div class="form-group">
+                <label for="apiBase">API Base URL *</label>
+                <input type="url" 
+                       id="apiBase" 
+                       name="apiBase" 
+                       th:value="${config.apiBase}"
+                       placeholder="https://api.github.com" 
+                       required>
+            </div>
+            
+            <div class="form-group" th:unless="${config.provider == 'custom-git'}">
+                <label for="webBase">Web Base URL</label>
+                <input type="url" 
+                       id="webBase" 
+                       name="webBase" 
+                       th:value="${config.webBase}"
+                       placeholder="https://github.com">
+            </div>
+            
+            <!-- 认证信息 -->
+            <div th:switch="${config.provider}">
+                <!-- GitHub, GitLab, Gitea: Token认证 -->
+                <div th:case="'github'">
+                    <div class="form-group">
+                        <label for="token">Personal Access Token *</label>
+                        <input type="password" 
+                               id="token" 
+                               name="token" 
+                               th:value="${config.token}"
+                               placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" 
+                               required>
+                        <small style="color: #6b7280;">需要 repo, read:org 权限</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="clientId">Client ID (OAuth App)</label>
+                        <input type="text" 
+                               id="clientId" 
+                               name="clientId" 
+                               th:value="${config.clientId}"
+                               placeholder="可选，用于OAuth认证">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="clientSecret">Client Secret</label>
+                        <input type="password" 
+                               id="clientSecret" 
+                               name="clientSecret" 
+                               th:value="${config.clientSecret}"
+                               placeholder="可选，用于OAuth认证">
+                    </div>
+                </div>
+                
+                <div th:case="'gitlab'">
+                    <div class="form-group">
+                        <label for="token">Personal Access Token *</label>
+                        <input type="password" 
+                               id="token" 
+                               name="token" 
+                               th:value="${config.token}"
+                               placeholder="glpat-xxxxxxxxxxxxxxxxxxxx" 
+                               required>
+                        <small style="color: #6b7280;">需要 api, read_repository 权限</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="clientId">Application ID (OAuth)</label>
+                        <input type="text" 
+                               id="clientId" 
+                               name="clientId" 
+                               th:value="${config.clientId}"
+                               placeholder="可选，用于OAuth认证">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="clientSecret">Application Secret</label>
+                        <input type="password" 
+                               id="clientSecret" 
+                               name="clientSecret" 
+                               th:value="${config.clientSecret}"
+                               placeholder="可选，用于OAuth认证">
+                    </div>
+                </div>
+                
+                <div th:case="'bitbucket'">
+                    <div class="form-group">
+                        <label for="username">用户名 *</label>
+                        <input type="text" 
+                               id="username" 
+                               name="username" 
+                               th:value="${config.username}"
+                               placeholder="your-username" 
+                               required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="appPassword">App Password *</label>
+                        <input type="password" 
+                               id="appPassword" 
+                               name="appPassword" 
+                               th:value="${config.appPassword}"
+                               placeholder="从Bitbucket设置中生成" 
+                               required>
+                        <small style="color: #6b7280;">需要 Repositories: Read, Pull requests: Read/Write 权限</small>
+                    </div>
+                </div>
+                
+                <div th:case="'gitea'">
+                    <div class="form-group">
+                        <label for="token">Access Token *</label>
+                        <input type="password" 
+                               id="token" 
+                               name="token" 
+                               th:value="${config.token}"
+                               placeholder="从Gitea设置中生成" 
+                               required>
+                        <small style="color: #6b7280;">需要 repo 权限</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="sslVerify">SSL证书验证</label>
+                        <select id="sslVerify" name="sslVerify">
+                            <option value="true" th:selected="${config.sslVerify == null or config.sslVerify}">启用</option>
+                            <option value="false" th:selected="${config.sslVerify != null and !config.sslVerify}">禁用</option>
+                        </select>
+                        <small style="color: #6b7280;">自建服务器可能需要禁用SSL验证</small>
+                    </div>
+                </div>
+                
+                <div th:case="'custom-git'">
+                    <div class="form-group">
+                        <label for="apiType">API类型 *</label>
+                        <select id="apiType" name="apiType" required>
+                            <option value="">请选择API类型</option>
+                            <option value="gitea" th:selected="${config.apiType == 'gitea'}">Gitea兼容</option>
+                            <option value="gitlab" th:selected="${config.apiType == 'gitlab'}">GitLab兼容</option>
+                            <option value="github" th:selected="${config.apiType == 'github'}">GitHub兼容</option>
+                        </select>
+                        <small style="color: #6b7280;">选择您的Git服务器API兼容类型</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="token">Access Token *</label>
+                        <input type="password" 
+                               id="token" 
+                               name="token" 
+                               th:value="${config.token}"
+                               placeholder="从Git服务器设置中生成" 
+                               required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="sslVerify">SSL证书验证</label>
+                        <select id="sslVerify" name="sslVerify">
+                            <option value="true" th:selected="${config.sslVerify == null or config.sslVerify}">启用</option>
+                            <option value="false" th:selected="${config.sslVerify != null and !config.sslVerify}">禁用</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Webhook配置 -->
+            <div class="form-group">
+                <label for="webhookSecret">Webhook Secret</label>
+                <input type="password" 
+                       id="webhookSecret" 
+                       name="webhookSecret" 
+                       th:value="${config.webhookSecret}"
+                       placeholder="用于验证webhook请求的密钥">
+                <small style="color: #6b7280;">可选，但建议设置以提高安全性</small>
+            </div>
+            
+            <!-- Webhook信息 -->
+            <div class="webhook-info" th:if="${config.provider != null}">
+                <h4 style="margin: 0 0 0.5rem 0; font-size: 0.875rem;">Webhook设置</h4>
+                <p style="margin: 0 0 0.5rem 0; font-size: 0.75rem; color: #6b7280;">
+                    在Git平台中配置以下Webhook URL:
+                </p>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <code class="webhook-url" th:text="'${#request.requestURL}' + '/api/webhooks/' + ${config.provider}">
+                        https://your-domain.com/api/webhooks/github
+                    </code>
+                    <button type="button" 
+                            class="btn btn-secondary btn-sm"
+                            th:onclick="'copyWebhookUrl(\'' + ${#request.requestURL} + '/api/webhooks/' + ${config.provider} + '\')'">
+                        复制
+                    </button>
+                </div>
+                <p style="margin: 0.5rem 0 0 0; font-size: 0.75rem; color: #6b7280;">
+                    事件类型: Pull Request (opened, synchronize, closed)
+                </p>
+            </div>
+            
+            <!-- 表单操作 -->
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <span th:text="${isNew} ? '保存配置' : '更新配置'">保存配置</span>
+                </button>
+                
+                <button type="button" 
+                        id="test-btn"
+                        class="btn btn-secondary"
+                        th:onclick="'testConnection(\'' + ${config.provider} + '\')'"
+                        th:disabled="${isNew}">
+                    测试连接
+                </button>
+                
+                <button type="button" 
+                        class="btn btn-danger"
+                        th:unless="${isNew}"
+                        hx-delete="/config/scm/{provider}"
+                        th:hx-vals="'provider':${config.provider}"
+                        hx-target="#provider-list"
+                        hx-confirm="确定要删除这个配置吗？">
+                    删除配置
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <div th:unless="${config != null}" style="text-align: center; padding: 2rem; color: #6b7280;">
+        <p>配置不存在或加载失败</p>
+    </div>
+</div>

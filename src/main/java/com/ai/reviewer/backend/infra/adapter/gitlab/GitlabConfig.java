@@ -274,6 +274,13 @@ public class GitlabConfig {
             return;
         }
         
+        // 跳过test profile的验证
+        String activeProfile = System.getProperty("spring.profiles.active");
+        if ("test".equals(activeProfile)) {
+            logger.info("Skipping GitLab configuration validation in test profile");
+            return;
+        }
+        
         if (!hasAuthentication()) {
             throw GitlabException.credentialsMissing();
         }

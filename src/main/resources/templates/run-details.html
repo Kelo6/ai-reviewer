@@ -8,8 +8,10 @@
     <title th:text="'运行详情 - ' + ${runId} + ' - AI Reviewer'">运行详情 - AI Reviewer</title>
     <link rel="stylesheet" th:href="@{/css/main.css}">
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-    <!-- <script th:src="@{/js/chart.min.js}"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script th:src="@{/js/charts.js}"></script>
+    <script th:src="@{/js/diff-viewer.js}"></script>
+    <script th:src="@{/js/diff-enhancer.js}"></script>
 </head>
 <body>
     <!-- 导航栏 -->
@@ -19,14 +21,17 @@
                 <a class="navbar-brand" th:href="@{/dashboard}">
                     🤖 AI Reviewer
                 </a>
-                <ul class="navbar-nav" sec:authorize="isAuthenticated()">
-                    <li><a class="nav-link" th:href="@{/dashboard}">仪表板</a></li>
-                    <li class="nav-item">
-                        <span class="nav-link" sec:authentication="name">用户</span>
+                <ul class="navbar-nav">
+                    <li><a class="nav-link" th:href="@{/dashboard}">📊 仪表板</a></li>
+                    <li><a class="nav-link" th:href="@{/config}">⚙️ 配置管理</a></li>
+                    <li><a class="nav-link" th:href="@{/models}">🤖 模型管理</a></li>
+                    <li><a class="nav-link" th:href="@{/api-docs}">📖 API文档</a></li>
+                    <li class="nav-item" sec:authorize="isAuthenticated()">
+                        <span class="nav-link" sec:authentication="name">👤 用户</span>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item" sec:authorize="isAuthenticated()">
                         <form th:action="@{/logout}" method="post" style="display: inline;">
-                            <button type="submit" class="btn btn-outline btn-sm">退出登录</button>
+                            <button type="submit" class="btn btn-outline btn-sm">🚪 退出登录</button>
                         </form>
                     </li>
                 </ul>
@@ -163,6 +168,167 @@
                         <div class="stat-card" th:if="${run.findings}">
                             <div class="stat-value" th:text="${run.findings.size()}">12</div>
                             <div class="stat-label">发现问题</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 代码差异信息 -->
+            <div class="card mb-4" th:if="${run.diffInfo != null}">
+                <div class="card-header">
+                    <h2 class="card-title">🔄 代码变更</h2>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3" th:if="${run.diffInfo.content != null}">
+                        <p class="text-muted mb-2">变更描述:</p>
+                        <p class="mb-0" th:text="${run.diffInfo.content}">Added input validation to UserService.java</p>
+                    </div>
+                    
+                    <div th:if="${run.diffInfo.files != null && !run.diffInfo.files.empty}">
+                        <h6 class="mb-3">📁 修改的文件</h6>
+                        <div class="space-y-3">
+                            <div th:each="file : ${run.diffInfo.files}" class="border rounded p-3 bg-light mb-3">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div class="file-info">
+                                        <span class="badge badge-secondary me-2" th:text="${file.status}">modified</span>
+                                        <code class="text-primary" th:text="${file.filename}">src/main/java/UserService.java</code>
+                                    </div>
+                                    <div class="file-stats">
+                                        <span class="badge bg-success me-1" th:text="'+' + ${file.additions}">+12</span>
+                                        <span class="badge bg-danger me-1" th:text="'-' + ${file.deletions}">-1</span>
+                                    </div>
+                                </div>
+                                <div th:if="${file.patch != null && !#strings.isEmpty(file.patch)}" class="mt-2">
+                                    <details class="collapse-code" open>
+                                        <summary class="btn btn-outline-secondary btn-sm">📊 查看代码差异</summary>
+                                        <div class="diff-viewer mt-2">
+                                            <div class="diff-header">
+                                                <span>📄</span>
+                                                <span th:text="${file.filename}">文件名</span>
+                                            </div>
+                                            <div class="diff-content">
+                                                <!-- 左侧：变更前 -->
+                                                <div class="diff-side">
+                                                    <div class="diff-side-header">变更前</div>
+                                                    <div class="diff-lines" th:attr="data-patch=${file.patch}, data-side='before'">
+                                                        <!-- 将通过JavaScript填充 -->
+                                                    </div>
+                                                </div>
+                                                <!-- 右侧：变更后 -->
+                                                <div class="diff-side">
+                                                    <div class="diff-side-header">变更后</div>
+                                                    <div class="diff-lines" th:attr="data-patch=${file.patch}, data-side='after'">
+                                                        <!-- 将通过JavaScript填充 -->
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </details>
+                                </div>
+                                
+                                <!-- 内联JavaScript用于渲染diff -->
+                                <script th:if="${file.patch != null && !#strings.isEmpty(file.patch)}" th:inline="javascript">
+                                /*<![CDATA[*/
+                                (function() {
+                                    const patch = /*[[${file.patch}]]*/ '';
+                                    const filename = /*[[${file.filename}]]*/ '';
+                                    
+                                    function parseDiffAndRender() {
+                                        const lines = patch.split('\n');
+                                        const beforeLines = [];
+                                        const afterLines = [];
+                                        let beforeNum = 1;
+                                        let afterNum = 1;
+                                        
+                                        lines.forEach(line => {
+                                            const firstChar = line.charAt(0);
+                                            const content = line.substring(1);
+                                            
+                                            if (line.startsWith('@@')) {
+                                                const hunkMatch = line.match(/@@ -(\d+),?\d* \+(\d+),?\d* @@/);
+                                                if (hunkMatch) {
+                                                    beforeNum = parseInt(hunkMatch[1]);
+                                                    afterNum = parseInt(hunkMatch[2]);
+                                                }
+                                                return;
+                                            }
+                                            
+                                            if (line.startsWith('diff --git') || line.startsWith('index ') || 
+                                                line.startsWith('---') || line.startsWith('+++')) {
+                                                return;
+                                            }
+                                            
+                                            if (firstChar === '-') {
+                                                beforeLines.push({
+                                                    type: 'removed',
+                                                    number: beforeNum++,
+                                                    content: content
+                                                });
+                                                afterLines.push({
+                                                    type: 'empty',
+                                                    number: '',
+                                                    content: ''
+                                                });
+                                            } else if (firstChar === '+') {
+                                                beforeLines.push({
+                                                    type: 'empty',
+                                                    number: '',
+                                                    content: ''
+                                                });
+                                                afterLines.push({
+                                                    type: 'added',
+                                                    number: afterNum++,
+                                                    content: content
+                                                });
+                                            } else {
+                                                beforeLines.push({
+                                                    type: 'context',
+                                                    number: beforeNum++,
+                                                    content: content
+                                                });
+                                                afterLines.push({
+                                                    type: 'context',
+                                                    number: afterNum++,
+                                                    content: content
+                                                });
+                                            }
+                                        });
+                                        
+                                        // 渲染左侧（变更前）
+                                        const beforeContainer = document.querySelector(`[data-side="before"][data-patch*="${filename}"]`);
+                                        if (beforeContainer) {
+                                            beforeContainer.innerHTML = beforeLines.map(line => 
+                                                `<div class="diff-line ${line.type}">
+                                                    <div class="diff-line-number">${line.number}</div>
+                                                    <div class="diff-line-content">${escapeHtml(line.content)}</div>
+                                                </div>`
+                                            ).join('');
+                                        }
+                                        
+                                        // 渲染右侧（变更后）
+                                        const afterContainer = document.querySelector(`[data-side="after"][data-patch*="${filename}"]`);
+                                        if (afterContainer) {
+                                            afterContainer.innerHTML = afterLines.map(line => 
+                                                `<div class="diff-line ${line.type}">
+                                                    <div class="diff-line-number">${line.number}</div>
+                                                    <div class="diff-line-content">${escapeHtml(line.content)}</div>
+                                                </div>`
+                                            ).join('');
+                                        }
+                                    }
+                                    
+                                    function escapeHtml(text) {
+                                        const div = document.createElement('div');
+                                        div.textContent = text;
+                                        return div.innerHTML;
+                                    }
+                                    
+                                    // 延迟执行以确保DOM准备完毕
+                                    setTimeout(parseDiffAndRender, 100);
+                                })();
+                                /*]]>*/
+                                </script>
+                            </div>
                         </div>
                     </div>
                 </div>

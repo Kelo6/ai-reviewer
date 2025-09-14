@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="zh-CN" 
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCM配置管理 - AI Reviewer</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <meta name="htmx-config" content='{"globalViewTransitions":true}'>
+    
+    <style>
+        .config-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr 320px;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+        
+        .provider-list {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            height: fit-content;
+        }
+        
+        .config-form {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            height: fit-content;
+        }
+        
+        .test-panel {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            height: fit-content;
+        }
+        
+        .provider-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border: 1px solid #e5e5e5;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .provider-item:hover {
+            background-color: #f8f9fa;
+            border-color: #007bff;
+        }
+        
+        .provider-item.active {
+            background-color: #e3f2fd;
+            border-color: #2196f3;
+        }
+        
+        .provider-item.connected {
+            border-color: #28a745;
+            background-color: #f8fff9;
+        }
+        
+        .provider-item.error {
+            border-color: #dc3545;
+            background-color: #fff8f8;
+        }
+        
+        .provider-name {
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .provider-status {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            color: white;
+        }
+        
+        .status-connected { background-color: #28a745; }
+        .status-error { background-color: #dc3545; }
+        .status-not-configured { background-color: #6c757d; }
+        
+        .form-section {
+            margin-bottom: 20px;
+        }
+        
+        .form-section h4 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #1e7e34;
+        }
+        
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid #007bff;
+            color: #007bff;
+        }
+        
+        .btn-outline:hover {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .test-result.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .test-result.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .custom-platform-form {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            border: 1px dashed #007bff;
+        }
+        
+        .icon {
+            width: 16px;
+            height: 16px;
+            display: inline-block;
+        }
+        
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        @media (max-width: 1200px) {
+            .config-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-content">
+                <a class="navbar-brand" th:href="@{/dashboard}">
+                    🤖 AI Reviewer
+                </a>
+                <ul class="navbar-nav">
+                    <li><a class="nav-link" th:href="@{/dashboard}">📊 仪表板</a></li>
+                    <li><a class="nav-link active" th:href="@{/config}">⚙️ 配置管理</a></li>
+                    <li><a class="nav-link" th:href="@{/models}">🤖 模型管理</a></li>
+                    <li><a class="nav-link" th:href="@{/api-docs}">📖 API文档</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <main class="main-content">
+        <div class="container">
+            <!-- 页面标题 -->
+            <div class="mb-4">
+                <h1>SCM配置管理</h1>
+                <p class="text-muted">配置和管理多个Git平台的连接设置，支持自定义平台接入</p>
+            </div>
+
+            <!-- 错误消息 -->
+            <div th:if="${error}" class="alert alert-error mb-3">
+                <span th:text="${error}">错误消息</span>
+            </div>
+
+            <div class="config-grid">
+                <!-- 左侧：提供商列表 -->
+                <div class="provider-list">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3>Git平台</h3>
+                        <button class="btn btn-outline btn-sm" onclick="showAddCustomPlatform()">
+                            + 添加自定义
+                        </button>
+                    </div>
+                    
+                    <div id="provider-list">
+                        <!-- 默认平台 -->
+                        <div th:if="${scmConfigs != null and !scmConfigs.empty}">
+                            <div th:each="config : ${scmConfigs}" class="provider-item" 
+                                 th:data-provider="${config.provider}"
+                                 th:classappend="${config.status == 'connected'} ? 'connected' : (${config.status == 'error'} ? 'error' : '')">
+                                <div class="provider-name">
+                                    <span th:switch="${config.provider}">
+                                        <span th:case="'github'">🐙</span>
+                                        <span th:case="'gitlab'">🦊</span>
+                                        <span th:case="'bitbucket'">🪣</span>
+                                        <span th:case="'gitea'">🍃</span>
+                                        <span th:case="*">🔧</span>
+                                    </span>
+                                    <span th:text="${config.displayName}">GitHub</span>
+                                </div>
+                                <div class="provider-status" 
+                                     th:classappend="'status-' + ${config.status}"
+                                     th:text="${config.status == 'connected'} ? '已连接' : 
+                                              (${config.status == 'error'} ? '错误' : '未配置')">
+                                    未配置
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 默认显示基础平台（当没有配置数据时） -->
+                        <div th:if="${scmConfigs == null or scmConfigs.empty}">
+                            <div class="provider-item" data-provider="github">
+                                <div class="provider-name">
+                                    <span>🐙</span>
+                                    <span>GitHub</span>
+                                </div>
+                                <div class="provider-status status-not-configured">未配置</div>
+                            </div>
+                            <div class="provider-item" data-provider="gitlab">
+                                <div class="provider-name">
+                                    <span>🦊</span>
+                                    <span>GitLab</span>
+                                </div>
+                                <div class="provider-status status-not-configured">未配置</div>
+                            </div>
+                            <div class="provider-item" data-provider="bitbucket">
+                                <div class="provider-name">
+                                    <span>🪣</span>
+                                    <span>Bitbucket</span>
+                                </div>
+                                <div class="provider-status status-not-configured">未配置</div>
+                            </div>
+                            <div class="provider-item" data-provider="gitea">
+                                <div class="provider-name">
+                                    <span>🍃</span>
+                                    <span>Gitea</span>
+                                </div>
+                                <div class="provider-status status-not-configured">未配置</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 添加自定义平台表单 -->
+                    <div id="custom-platform-form" class="custom-platform-form" style="display: none;">
+                        <h4>添加自定义平台</h4>
+                        <form id="add-custom-form">
+                            <div class="form-group">
+                                <label>平台名称</label>
+                                <input type="text" name="name" placeholder="如：自建GitLab" required>
+                            </div>
+                            <div class="form-group">
+                                <label>API 地址</label>
+                                <input type="url" name="apiBase" placeholder="https://git.example.com/api/v4" required>
+                            </div>
+                            <div class="form-group">
+                                <label>网站地址</label>
+                                <input type="url" name="webBase" placeholder="https://git.example.com">
+                            </div>
+                            <div class="form-group">
+                                <label>API 类型</label>
+                                <select name="apiType">
+                                    <option value="gitea">Gitea/Forgejo</option>
+                                    <option value="gitlab">GitLab</option>
+                                    <option value="github">GitHub Enterprise</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                                <button type="button" class="btn btn-primary" onclick="addCustomPlatform()">添加</button>
+                                <button type="button" class="btn btn-secondary" onclick="hideAddCustomPlatform()">取消</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- 中间：配置表单 -->
+                <div class="config-form">
+                    <div id="config-form-container">
+                        <div style="text-align: center; padding: 40px; color: #999;">
+                            <p>选择左侧的平台开始配置</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 右侧：测试面板 -->
+                <div class="test-panel">
+                    <h3>连通性测试</h3>
+                    <div id="test-panel-content">
+                        <div style="text-align: center; padding: 40px; color: #999;">
+                            <p>配置完成后可进行连通性测试</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="text-center text-muted text-small">
+                © 2024 AI Reviewer. Powered by Spring Boot & Thymeleaf.
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        let selectedProvider = null;
+        
+        // 页面加载完成后绑定事件
+        document.addEventListener('DOMContentLoaded', function() {
+            // 绑定平台选择事件
+            document.querySelectorAll('.provider-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const provider = this.getAttribute('data-provider');
+                    if (provider) {
+                        selectProvider(provider, this);
+                    }
+                });
+            });
+        });
+        
+        // 选择提供商
+        function selectProvider(provider, element) {
+            selectedProvider = provider;
+            
+            // 更新选中状态
+            document.querySelectorAll('.provider-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            element.classList.add('active');
+            
+            // 加载配置表单
+            loadConfigForm(provider);
+            
+            // 加载测试面板
+            loadTestPanel(provider);
+        }
+        
+        // 加载配置表单
+        function loadConfigForm(provider) {
+            const container = document.getElementById('config-form-container');
+            container.innerHTML = '<div style="text-align: center; padding: 20px;">加载中...</div>';
+            
+            fetch(`/config/scm/${provider}/form`)
+                .then(response => response.text())
+                .then(html => {
+                    container.innerHTML = html;
+                })
+                .catch(error => {
+                    container.innerHTML = '<div class="alert alert-error">加载配置表单失败</div>';
+                });
+        }
+        
+        // 加载测试面板
+        function loadTestPanel(provider) {
+            const testPanel = document.getElementById('test-panel-content');
+            testPanel.innerHTML = `
+                <div class="form-group">
+                    <button class="btn btn-success" onclick="testConnection()" id="test-btn">
+                        🔍 测试连接
+                    </button>
+                </div>
+                <div id="test-result"></div>
+                <div id="connection-info" style="margin-top: 15px; font-size: 12px; color: #666;">
+                    <strong>提示：</strong>测试将验证API地址可访问性和认证信息有效性
+                </div>
+            `;
+        }
+        
+        // 测试连接
+        function testConnection() {
+            if (!selectedProvider) return;
+            
+            const testBtn = document.getElementById('test-btn');
+            const testResult = document.getElementById('test-result');
+            
+            // 收集表单数据
+            const formData = collectFormData();
+            if (!formData) {
+                testResult.innerHTML = '<div class="test-result error">请先完成必要的配置项</div>';
+                return;
+            }
+            
+            testBtn.textContent = '测试中...';
+            testBtn.disabled = true;
+            testResult.innerHTML = '';
+            
+            fetch('/config/scm/test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Test response data:', data);
+                
+                // 记录调试信息
+                debugRequest('/config/scm/test', formData, data);
+                
+                // 检查ApiResponse格式
+                if (data && data.ok === true && data.data && data.data.success === true) {
+                    testResult.innerHTML = `
+                        <div class="test-result success">
+                            <strong>✅ 连接成功!</strong><br>
+                            平台：${data.data.details ? data.data.details.displayName || selectedProvider : selectedProvider}<br>
+                            API：${data.data.details ? data.data.details.apiBase || formData.apiBase : formData.apiBase}<br>
+                            Webhook：${data.data.details ? data.data.details.webhookUrl || '/api/webhooks/' + selectedProvider : '/api/webhooks/' + selectedProvider}
+                        </div>
+                    `;
+                    updateProviderStatus(selectedProvider, 'connected');
+                } else {
+                    // 处理错误信息
+                    let errorMsg = '连接测试失败';
+                    
+                    if (data) {
+                        // 检查ApiResponse的error字段
+                        if (data.error && data.error.message) {
+                            errorMsg = data.error.message;
+                        }
+                        // 检查data中的message（测试结果）
+                        else if (data.data && data.data.message) {
+                            errorMsg = data.data.message;
+                        }
+                        // 兼容旧格式
+                        else if (data.message) {
+                            errorMsg = data.message;
+                        }
+                    }
+                    
+                    testResult.innerHTML = `
+                        <div class="test-result error">
+                            <strong>❌ 连接失败</strong><br>
+                            ${errorMsg}
+                        </div>
+                    `;
+                    updateProviderStatus(selectedProvider, 'error');
+                }
+            })
+            .catch(error => {
+                testResult.innerHTML = `
+                    <div class="test-result error">
+                        <strong>❌ 测试异常</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            })
+            .finally(() => {
+                testBtn.textContent = '🔍 测试连接';
+                testBtn.disabled = false;
+            });
+        }
+        
+        // 收集表单数据
+        function collectFormData() {
+            try {
+                if (!selectedProvider) {
+                    console.error('No provider selected');
+                    return null;
+                }
+                
+                const form = document.querySelector('#config-form-container form');
+                if (!form) {
+                    console.error('Form not found in config-form-container');
+                    return null;
+                }
+                
+                const config = {
+                    provider: selectedProvider
+                };
+                
+                // 收集所有表单字段
+                const inputs = form.querySelectorAll('input, select, textarea');
+                console.log('Found form inputs:', inputs.length);
+                
+                inputs.forEach((input, index) => {
+                    try {
+                        const name = input.name;
+                        if (!name) {
+                            console.warn(`Input ${index} has no name attribute`);
+                            return;
+                        }
+                        
+                        if (input.type === 'checkbox') {
+                            config[name] = input.checked;
+                        } else if (input.type === 'radio') {
+                            if (input.checked) {
+                                config[name] = input.value || '';
+                            }
+                        } else {
+                            const value = (input.value || '').trim();
+                            if (value !== '') {
+                                config[name] = value;
+                            }
+                        }
+                        
+                        console.log(`Processed field: ${name} = ${input.type === 'password' ? '[hidden]' : config[name]}`);
+                    } catch (inputError) {
+                        console.error(`Error processing input ${index}:`, inputError);
+                    }
+                });
+                
+                // 验证必需字段
+                if (!validateConfigData(config)) {
+                    console.error('Config validation failed');
+                    return null;
+                }
+                
+                console.log('Successfully collected form data:', config);
+                return config;
+                
+            } catch (error) {
+                console.error('Error in collectFormData:', error);
+                return null;
+            }
+        }
+        
+        // 验证配置数据
+        function validateConfigData(config) {
+            try {
+                // 基础验证
+                if (!config || typeof config !== 'object') {
+                    console.error('Config is null or not an object:', config);
+                    alert('配置数据无效');
+                    return false;
+                }
+                
+                if (!config.provider || typeof config.provider !== 'string' || config.provider.trim() === '') {
+                    console.error('Provider is invalid:', config.provider);
+                    alert('提供商信息缺失');
+                    return false;
+                }
+                
+                if (!config.apiBase || typeof config.apiBase !== 'string' || config.apiBase.trim() === '') {
+                    console.error('API base is invalid:', config.apiBase);
+                    alert('API地址不能为空');
+                    return false;
+                }
+                
+                // URL格式验证
+                try {
+                    new URL(config.apiBase);
+                } catch (e) {
+                    console.error('Invalid URL format:', config.apiBase, e);
+                    alert('API地址格式无效: ' + config.apiBase);
+                    return false;
+                }
+                
+                // 提供商特定验证
+                switch (config.provider) {
+                    case 'github':
+                    case 'gitlab':
+                    case 'gitea':
+                        if (!config.token || typeof config.token !== 'string' || config.token.trim() === '') {
+                            console.error('Token is invalid for provider:', config.provider, 'token:', config.token);
+                            alert('访问令牌不能为空');
+                            return false;
+                        }
+                        break;
+                    case 'bitbucket':
+                        if (!config.username || typeof config.username !== 'string' || config.username.trim() === '') {
+                            console.error('Username is invalid for bitbucket:', config.username);
+                            alert('用户名不能为空');
+                            return false;
+                        }
+                        if (!config.appPassword || typeof config.appPassword !== 'string' || config.appPassword.trim() === '') {
+                            console.error('App password is invalid for bitbucket:', config.appPassword);
+                            alert('应用密码不能为空');
+                            return false;
+                        }
+                        break;
+                    case 'custom-git':
+                        if (!config.token || typeof config.token !== 'string' || config.token.trim() === '') {
+                            console.error('Token is invalid for custom-git:', config.token);
+                            alert('访问令牌不能为空');
+                            return false;
+                        }
+                        // apiType 可以为空，会使用默认值
+                        break;
+                    default:
+                        // 对于自定义provider，检查是否以custom-开头
+                        if (!config.provider.startsWith('custom-')) {
+                            console.warn('Unknown provider:', config.provider);
+                        }
+                        break;
+                }
+                
+                console.log('Config validation passed for provider:', config.provider);
+                return true;
+                
+            } catch (error) {
+                console.error('Error in validateConfigData:', error);
+                alert('配置验证时发生错误: ' + error.message);
+                return false;
+            }
+        }
+        
+        // 更新提供商状态
+        function updateProviderStatus(provider, status) {
+            const providerItems = document.querySelectorAll('.provider-item');
+            providerItems.forEach(item => {
+                // 使用data-provider属性来匹配，而不是onclick
+                const itemProvider = item.getAttribute('data-provider');
+                if (itemProvider === provider) {
+                    const statusElement = item.querySelector('.provider-status');
+                    if (statusElement) {
+                        statusElement.className = 'provider-status status-' + status;
+                        statusElement.textContent = status === 'connected' ? '已连接' : 
+                                                  status === 'error' ? '错误' : '未配置';
+                    }
+                    
+                    // 更新item的class，移除旧的状态class
+                    item.className = item.className.replace(/\s*(connected|error)\s*/g, '');
+                    if (status === 'connected') {
+                        item.classList.add('connected');
+                    } else if (status === 'error') {
+                        item.classList.add('error');
+                    }
+                }
+            });
+        }
+        
+        // 显示添加自定义平台表单
+        function showAddCustomPlatform() {
+            document.getElementById('custom-platform-form').style.display = 'block';
+        }
+        
+        // 隐藏添加自定义平台表单
+        function hideAddCustomPlatform() {
+            document.getElementById('custom-platform-form').style.display = 'none';
+            document.getElementById('add-custom-form').reset();
+        }
+        
+        // 添加自定义平台
+        function addCustomPlatform() {
+            const form = document.getElementById('add-custom-form');
+            const formData = new FormData(form);
+            const platformData = {};
+            
+            for (let [key, value] of formData.entries()) {
+                platformData[key] = value;
+            }
+            
+            fetch('/config/scm/custom', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(platformData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 刷新页面显示新添加的平台
+                    location.reload();
+                } else {
+                    alert('添加失败：' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('添加失败：' + error.message);
+            });
+        }
+        
+        // 保存配置
+        function saveConfig() {
+            if (!selectedProvider) {
+                alert('请先选择一个平台');
+                return;
+            }
+            
+            console.log('Starting to save config for provider:', selectedProvider);
+            
+            const formData = collectFormData();
+            if (!formData) {
+                console.error('Failed to collect form data');
+                return;
+            }
+            
+            // 显示保存中状态
+            const saveBtn = document.querySelector('button[onclick="saveConfig()"]');
+            const originalText = saveBtn ? saveBtn.textContent : '';
+            if (saveBtn) {
+                saveBtn.textContent = '保存中...';
+                saveBtn.disabled = true;
+            }
+            
+            console.log('Sending request to save config:', formData);
+            
+            fetch('/config/scm', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                console.log('Save response status:', response.status, 'status text:', response.statusText);
+                
+                // 检查响应状态
+                if (!response.ok) {
+                    throw new Error(`HTTP错误: ${response.status} ${response.statusText}`);
+                }
+                
+                // 检查Content-Type
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    console.warn('Response is not JSON, content-type:', contentType);
+                    return response.text().then(text => {
+                        console.error('Non-JSON response:', text);
+                        throw new Error('服务器返回了非JSON格式的响应');
+                    });
+                }
+                
+                return response.json();
+            })
+            .then(data => {
+                console.log('Save response data:', data);
+                
+                // 记录调试信息
+                debugRequest('/config/scm', formData, data);
+                
+                // 检查ApiResponse格式：{ ok: boolean, data: T, error: { code: string, message: string } }
+                if (data && data.ok === true) {
+                    showMessage('配置保存成功', 'success');
+                    updateProviderStatus(selectedProvider, 'connected');
+                    
+                    // 刷新配置列表
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    // 详细的错误信息处理
+                    let errorMsg = '保存失败，未知错误';
+                    
+                    if (data) {
+                        // 检查error对象中的message
+                        if (data.error && data.error.message) {
+                            errorMsg = data.error.message;
+                        }
+                        // 检查error对象中的code
+                        else if (data.error && data.error.code) {
+                            errorMsg = `错误代码: ${data.error.code}`;
+                        }
+                        // 检查直接的message字段（兼容性）
+                        else if (data.message) {
+                            errorMsg = data.message;
+                        }
+                        // 检查是否是旧格式的success字段
+                        else if (data.success === false && data.message) {
+                            errorMsg = data.message;
+                        }
+                    }
+                    
+                    console.error('Save failed with data:', data);
+                    console.error('Error message:', errorMsg);
+                    showMessage('保存失败：' + errorMsg, 'error');
+                    
+                    // 显示详细的调试信息
+                    if (console && console.table && data) {
+                        console.table(data);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Save request failed:', error);
+                console.error('Error details:', {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack
+                });
+                
+                let errorMessage = '网络错误或服务器异常';
+                if (error.message) {
+                    errorMessage = error.message;
+                }
+                
+                showMessage('保存失败：' + errorMessage, 'error');
+            })
+            .finally(() => {
+                // 恢复按钮状态
+                if (saveBtn) {
+                    saveBtn.textContent = originalText || '保存';
+                    saveBtn.disabled = false;
+                }
+            });
+        }
+        
+        // 显示消息
+        function showMessage(message, type = 'info') {
+            // 创建消息元素
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `alert alert-${type}`;
+            messageDiv.style.position = 'fixed';
+            messageDiv.style.top = '20px';
+            messageDiv.style.right = '20px';
+            messageDiv.style.zIndex = '9999';
+            messageDiv.style.maxWidth = '400px';
+            messageDiv.style.padding = '12px';
+            messageDiv.style.borderRadius = '4px';
+            messageDiv.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+            
+            // 设置样式
+            switch (type) {
+                case 'success':
+                    messageDiv.style.backgroundColor = '#d4edda';
+                    messageDiv.style.color = '#155724';
+                    messageDiv.style.border = '1px solid #c3e6cb';
+                    break;
+                case 'error':
+                    messageDiv.style.backgroundColor = '#f8d7da';
+                    messageDiv.style.color = '#721c24';
+                    messageDiv.style.border = '1px solid #f5c6cb';
+                    break;
+                default:
+                    messageDiv.style.backgroundColor = '#d1ecf1';
+                    messageDiv.style.color = '#0c5460';
+                    messageDiv.style.border = '1px solid #bee5eb';
+            }
+            
+            messageDiv.textContent = message;
+            document.body.appendChild(messageDiv);
+            
+            // 3秒后自动移除
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.parentNode.removeChild(messageDiv);
+                }
+            }, 3000);
+        }
+        
+        // 调试功能：显示完整的请求和响应信息
+        function debugRequest(url, requestData, responseData) {
+            console.group('🔍 API调试信息');
+            console.log('📤 请求URL:', url);
+            console.log('📤 请求数据:', requestData);
+            console.log('📥 响应数据:', responseData);
+            
+            if (responseData) {
+                console.log('📋 响应详情:');
+                console.table({
+                    'ok字段': responseData.ok,
+                    'data字段': responseData.data ? '存在' : '不存在',
+                    'error字段': responseData.error ? '存在' : '不存在',
+                    'success字段': responseData.success !== undefined ? responseData.success : '不存在'
+                });
+                
+                if (responseData.error) {
+                    console.log('❌ 错误详情:', responseData.error);
+                }
+                
+                if (responseData.data) {
+                    console.log('✅ 数据详情:', responseData.data);
+                }
+            }
+            console.groupEnd();
+        }
+        
+        // 快速诊断功能
+        function quickDiagnose() {
+            console.group('🏥 快速诊断');
+            console.log('当前选择的提供商:', selectedProvider || 'null');
+            
+            // 检查DOM元素
+            const form = document.querySelector('#config-form-container form');
+            console.log('表单元素:', form ? '✅ 找到' : '❌ 未找到');
+            
+            if (form) {
+                const inputs = form.querySelectorAll('input, select, textarea');
+                console.log('📝 表单字段数量:', inputs.length);
+                
+                // 显示表单字段详情
+                console.group('📋 表单字段详情');
+                inputs.forEach((input, index) => {
+                    console.log(`字段${index + 1}:`, {
+                        name: input.name || 'unnamed',
+                        type: input.type || 'unknown',
+                        value: input.type === 'password' ? '[隐藏]' : (input.value || 'empty'),
+                        required: input.required || false
+                    });
+                });
+                console.groupEnd();
+                
+                // 尝试收集表单数据
+                try {
+                    const formData = collectFormData();
+                    if (formData) {
+                        console.log('✅ 表单数据收集成功');
+                        console.table(formData);
+                    } else {
+                        console.log('❌ 表单数据收集失败 - collectFormData返回null');
+                    }
+                } catch (error) {
+                    console.error('❌ 表单数据收集异常:', error);
+                }
+            }
+            
+            // 检查provider items
+            const providerItems = document.querySelectorAll('.provider-item');
+            console.log('提供商列表项数量:', providerItems.length);
+            
+            console.groupEnd();
+        }
+        
+        // 在控制台提供快速诊断命令
+        window.quickDiagnose = quickDiagnose;
+    </script>
+</body>
+</html>

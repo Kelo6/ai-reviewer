@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>模态框调试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .debug-info {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        
+        .modal-overlay {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            background: rgba(0, 0, 0, 0.6) !important;
+            align-items: center !important;
+            justify-content: center !important;
+            z-index: 9999 !important;
+            backdrop-filter: blur(2px);
+        }
+        
+        .modal-overlay.show {
+            display: flex !important;
+        }
+        
+        .modal {
+            background: white !important;
+            border-radius: 12px !important;
+            padding: 2rem !important;
+            max-width: 600px !important;
+            width: 90% !important;
+            max-height: 80vh !important;
+            overflow-y: auto !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+            transform: scale(1) !important;
+            opacity: 1 !important;
+            position: relative !important;
+            z-index: 10000 !important;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        #debug-output {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-info">
+        <h1>🔧 模态框调试工具</h1>
+        <p>此页面用于调试模态框显示问题。请按顺序点击按钮进行测试：</p>
+        
+        <button class="btn btn-primary" onclick="testBasicModal()">1. 测试基础模态框</button>
+        <button class="btn btn-success" onclick="testStyledModal()">2. 测试样式模态框</button>
+        <button class="btn btn-warning" onclick="testModelPageModal()">3. 打开模型管理页面</button>
+        
+        <h3>调试输出：</h3>
+        <div id="debug-output"></div>
+        
+        <h3>问题排查步骤：</h3>
+        <ol>
+            <li>点击"测试基础模态框"，看是否能看到简单的黑色背景和白色框</li>
+            <li>点击"测试样式模态框"，看是否能看到完整样式的模态框</li>
+            <li>如果以上都正常，问题可能在模型管理页面的特定实现中</li>
+            <li>如果以上都不正常，可能是浏览器兼容性问题</li>
+        </ol>
+    </div>
+    
+    <!-- 测试模态框 -->
+    <div id="test-modal" class="modal-overlay" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-title">测试模态框</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modal-content">
+                <p>这是一个测试模态框内容</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function log(message) {
+            const output = document.getElementById('debug-output');
+            const timestamp = new Date().toLocaleTimeString();
+            output.textContent += `[${timestamp}] ${message}\n`;
+            output.scrollTop = output.scrollHeight;
+            console.log(message);
+        }
+        
+        function testBasicModal() {
+            log('开始测试基础模态框...');
+            
+            const modal = document.getElementById('test-modal');
+            const title = document.getElementById('modal-title');
+            const content = document.getElementById('modal-content');
+            
+            if (!modal) {
+                log('错误：找不到模态框元素');
+                return;
+            }
+            
+            title.textContent = '✅ 基础测试成功';
+            content.innerHTML = '<p style="color: green; font-size: 18px;">如果您能看到这个消息，说明基础模态框功能正常！</p><button class="btn btn-primary" onclick="closeModal()">关闭</button>';
+            
+            modal.classList.add('show');
+            log('基础模态框已显示');
+        }
+        
+        function testStyledModal() {
+            log('开始测试样式模态框...');
+            
+            const modal = document.getElementById('test-modal');
+            const title = document.getElementById('modal-title');
+            const content = document.getElementById('modal-content');
+            
+            title.textContent = '🎨 样式测试';
+            content.innerHTML = `
+                <div style="padding: 20px; text-align: center;">
+                    <h3 style="color: #007bff;">✨ 样式模态框测试成功！</h3>
+                    <p>这个模态框包含了完整的样式和功能：</p>
+                    <ul style="text-align: left; margin: 20px;">
+                        <li>✅ 背景遮罩</li>
+                        <li>✅ 居中显示</li>
+                        <li>✅ 圆角边框</li>
+                        <li>✅ 阴影效果</li>
+                        <li>✅ 响应式设计</li>
+                    </ul>
+                    <button class="btn btn-success" onclick="closeModal()">关闭</button>
+                </div>
+            `;
+            
+            modal.classList.add('show');
+            log('样式模态框已显示');
+        }
+        
+        function closeModal() {
+            const modal = document.getElementById('test-modal');
+            modal.classList.remove('show');
+            log('模态框已关闭');
+        }
+        
+        function testModelPageModal() {
+            log('打开模型管理页面...');
+            window.open('http://localhost:8080/models', '_blank');
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            log('调试页面加载完成');
+            log('用户代理: ' + navigator.userAgent);
+            log('屏幕分辨率: ' + screen.width + 'x' + screen.height);
+            log('窗口大小: ' + window.innerWidth + 'x' + window.innerHeight);
+        });
+        
+        // 点击背景关闭模态框
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('test-modal');
+            if (event.target === modal && modal.classList.contains('show')) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

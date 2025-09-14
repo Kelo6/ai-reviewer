@@ -53,10 +53,22 @@
                                 </time>
                             </td>
                             <td>
-                                <a th:href="@{'/runs/' + ${run.runId}}" 
-                                   class="btn btn-outline btn-sm">
-                                    查看详情
-                                </a>
+                                <div class="btn-group-sm">
+                                    <a th:href="@{'/runs/' + ${run.runId}}" 
+                                       class="btn btn-outline btn-sm">
+                                        📊 查看详情
+                                    </a>
+                                    <button type="button" 
+                                            class="btn btn-primary btn-sm"
+                                            th:attr="onclick='generateReport(' + '&quot;' + ${run.runId} + '&quot;' + ')'">
+                                        📄 生成报告
+                                    </button>
+                                    <a th:href="@{'/api/reports/' + ${run.runId} + '.md'}"
+                                       class="btn btn-secondary btn-sm"
+                                       download>
+                                        📥 下载
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     </tbody>

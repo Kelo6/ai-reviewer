@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Service layer for review orchestration with persistence and transaction management.
@@ -53,24 +54,69 @@ public class ReviewService {
      * @return CompletableFuture that completes when review is triggered
      */
     public CompletableFuture<Void> triggerReview(RepoRef repo, PullRef pull) {
+        return triggerReview(repo, pull, null);
+    }
+    
+    /**
+     * Trigger asynchronous review process with diff information.
+     * 
+     * @param repo Repository reference
+     * @param pull Pull request reference
+     * @param diffInfo Diff information from webhook payload
+     * @return CompletableFuture that completes when review is triggered
+     */
+    public CompletableFuture<Void> triggerReview(RepoRef repo, PullRef pull, com.ai.reviewer.backend.domain.adapter.scm.ParsedEvent.DiffInfo diffInfo) {
         return CompletableFuture.runAsync(() -> {
             try {
                 logger.info("Triggering AI review for PR {}/{} #{}", 
                         repo.owner(), repo.name(), pull.number());
                 
+                if (diffInfo != null) {
+                    logger.info("Diff info provided: {} files", 
+                        diffInfo.files() != null ? diffInfo.files().size() : 0);
+                }
+                
                 // Use default configuration for webhook-triggered reviews
                 ReviewOrchestrator.ReviewConfig config = ReviewOrchestrator.ReviewConfig.defaultConfig();
                 String providerKey = repo.provider();
                 
-                // Execute the review asynchronously
-                executeReview(repo, pull, providerKey, config);
+                // Execute the review asynchronously and wait for completion
+                CompletableFuture<ReviewRun> reviewFuture = executeReview(repo, pull, providerKey, config);
                 
-                logger.info("AI review completed for PR {}/{} #{}", 
-                        repo.owner(), repo.name(), pull.number());
+                // Wait for the review to complete
+                ReviewRun reviewRun = reviewFuture.get();
+                
+                logger.info("AI review completed successfully for PR {}/{} #{} with runId: {}", 
+                        repo.owner(), repo.name(), pull.number(), reviewRun.runId());
                         
             } catch (Exception e) {
                 logger.error("Failed to complete AI review for PR {}/{} #{}", 
                         repo.owner(), repo.name(), pull.number(), e);
+                
+                // 创建一个简化的错误记录以便在仪表盘中显示
+                try {
+                    String errorRunId = "error-" + System.currentTimeMillis();
+                    
+                    // 创建默认的scores以避免null pointer
+                    Scores defaultScores = new Scores(
+                        0.0, // totalScore
+                        new java.util.HashMap<>(), // dimensions
+                        new java.util.HashMap<>()  // weights
+                    );
+                    
+                    ReviewRun errorRun = new ReviewRun(
+                        errorRunId, repo, pull, java.time.Instant.now(),
+                        List.of(), // No provider keys
+                        new ReviewRun.Stats(0, 0, 0, 0L, null),
+                        List.of(), // No findings  
+                        defaultScores, // Provide default scores instead of null
+                        null  // No artifacts
+                    );
+                    saveReviewRunAtomic(errorRun);
+                    logger.info("Saved error review run: {}", errorRunId);
+                } catch (Exception saveEx) {
+                    logger.warn("Failed to save error review run", saveEx);
+                }
             }
         });
     }

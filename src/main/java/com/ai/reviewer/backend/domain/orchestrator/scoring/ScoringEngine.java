@@ -126,6 +126,9 @@ public class ScoringEngine {
         // Calculate total weighted score
         double totalScore = calculateTotalScore(dimensionScores, config.dimensionWeights());
         
+        // 🔧 Fix: Ensure total_score fits in logical range (0.0 to 100.0)
+        totalScore = Math.max(0.0, Math.min(100.0, totalScore));
+        
         return new Scores(totalScore, dimensionScores, config.dimensionWeights());
     }
     

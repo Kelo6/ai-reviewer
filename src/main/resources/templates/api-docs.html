@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN" 
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 文档 - AI Reviewer</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-content">
+                <a class="navbar-brand" th:href="@{/dashboard}">
+                    🤖 AI Reviewer
+                </a>
+                <ul class="navbar-nav">
+                    <li><a class="nav-link" th:href="@{/dashboard}">📊 仪表板</a></li>
+                    <li><a class="nav-link" th:href="@{/config}">⚙️ 配置管理</a></li>
+                    <li><a class="nav-link" th:href="@{/models}">🤖 模型管理</a></li>
+                    <li><a class="nav-link active" th:href="@{/api-docs}">📖 API文档</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <main class="main-content">
+        <div class="container">
+            <!-- 页面标题 -->
+            <div class="mb-4">
+                <h1>API 文档</h1>
+                <p class="text-muted">AI Reviewer REST API 接口说明</p>
+            </div>
+            <!-- API 概述 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="card-title">API 概述</h3>
+                </div>
+                <div class="card-body">
+                    <p>AI Reviewer 提供了完整的 REST API，支持代码审查的自动化集成。所有API端点都返回JSON格式的数据。</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4>基础信息</h4>
+                            <ul class="list-unstyled">
+                                <li><strong>Base URL:</strong> <code th:text="'http://localhost:8080'">http://localhost:8080</code></li>
+                                <li><strong>Content-Type:</strong> <code>application/json</code></li>
+                                <li><strong>认证方式:</strong> Token 或 OAuth2</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h4>响应格式</h4>
+                            <pre><code>{
+  "success": true,
+  "data": { ... },
+  "message": "操作成功",
+  "timestamp": "2024-01-01T00:00:00Z"
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API 端点列表 -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">API 端点</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div th:each="endpoint : ${endpoints}" class="col-md-6 mb-4">
+                            <div class="api-endpoint">
+                                <div class="api-method-header">
+                                    <span class="api-method" 
+                                          th:text="${endpoint.method}"
+                                          th:classappend="${endpoint.method == 'GET' ? 'method-get' : 
+                                                         (endpoint.method == 'POST' ? 'method-post' : 
+                                                         (endpoint.method == 'PUT' ? 'method-put' : 'method-delete'))}">
+                                        GET
+                                    </span>
+                                    <code class="api-path" th:text="${endpoint.path}">/api/health</code>
+                                </div>
+                                <h4 class="api-name" th:text="${endpoint.name}">端点名称</h4>
+                                <p class="api-description" th:text="${endpoint.description}">端点描述</p>
+                                <div class="api-parameters">
+                                    <strong>参数:</strong>
+                                    <span class="text-muted" th:text="${endpoint.parameters}">参数列表</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 示例代码 -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3 class="card-title">使用示例</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4>cURL 示例</h4>
+                            <pre><code># 触发代码审查
+curl -X POST http://localhost:8080/api/review/trigger \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "repositoryUrl": "https://github.com/user/repo",
+    "pullRequestId": "123"
+  }'
+
+# 获取健康状态
+curl -X GET http://localhost:8080/api/health</code></pre>
+                        </div>
+                        <div class="col-md-6">
+                            <h4>JavaScript 示例</h4>
+                            <pre><code>// 触发代码审查
+const response = await fetch('/api/review/trigger', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer YOUR_TOKEN'
+  },
+  body: JSON.stringify({
+    repositoryUrl: 'https://github.com/user/repo',
+    pullRequestId: '123'
+  })
+});
+
+const result = await response.json();
+console.log(result);</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="text-center text-muted text-small">
+                © 2024 AI Reviewer. Powered by Spring Boot & Thymeleaf.
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

@@ -21,8 +21,17 @@ public record ReviewRunDto(
     StatsInfo stats,
     List<FindingDto> findings,
     ScoresInfo scores,
-    ArtifactsInfo artifacts
+    ArtifactsInfo artifacts,
+    DiffInfo diffInfo
 ) {
+    
+    // 兼容性构造器（不包含diff信息）
+    public ReviewRunDto(String runId, RepoInfo repo, PullInfo pull, Instant createdAt,
+                       List<String> providerKeys, StatsInfo stats, 
+                       List<FindingDto> findings, ScoresInfo scores,
+                       ArtifactsInfo artifacts) {
+        this(runId, repo, pull, createdAt, providerKeys, stats, findings, scores, artifacts, null);
+    }
     
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record RepoInfo(
@@ -77,4 +86,21 @@ public record ReviewRunDto(
         String reportHtmlPath,
         String reportPdfPath
     ) {}
+    
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record DiffInfo(
+        String content,
+        List<FileChange> files
+    ) {
+        
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public record FileChange(
+            String filename,
+            String status,
+            int additions,
+            int deletions,
+            int changes,
+            String patch
+        ) {}
+    }
 }

@@ -229,6 +229,7 @@ public class ReviewOrchestrator {
             logger.debug("Generated {} code segments for analysis", codeSegments.size());
             
             // Step 4: Parallel analysis execution
+            logger.info("🔍 Starting parallel analysis: static + AI for {} segments", codeSegments.size());
             CompletableFuture<List<Finding>> staticAnalysisFuture = runStaticAnalysis(codeSegments, repository, pullRequest, runId, config);
             CompletableFuture<List<Finding>> aiReviewFuture = runAiReview(codeSegments, repository, pullRequest, runId, config);
             
@@ -372,8 +373,11 @@ public class ReviewOrchestrator {
     private CompletableFuture<List<Finding>> runAiReview(List<StaticAnalyzer.CodeSegment> segments,
                                                        RepoRef repository, PullRef pullRequest,
                                                        String runId, ReviewConfig config) {
+        logger.info("🤖 Starting AI review with {} reviewers for {} segments", 
+            aiReviewers.size(), segments.size());
+        
         if (aiReviewers.isEmpty()) {
-            logger.debug("No AI reviewers configured, skipping AI review");
+            logger.warn("❌ No AI reviewers configured, skipping AI review");
             return CompletableFuture.completedFuture(List.of());
         }
         
@@ -395,7 +399,7 @@ public class ReviewOrchestrator {
                 continue;
             }
             
-            logger.debug("Running AI reviewer {} on {} segments", 
+            logger.info("🚀 Running AI reviewer {} on {} segments", 
                 reviewer.getReviewerId(), supportedSegments.size());
             
             AiReviewer.ReviewContext context = AiReviewer.ReviewContext.basic(
@@ -944,9 +948,7 @@ public class ReviewOrchestrator {
      */
     public ReviewRun getReviewRun(String runId) {
         // Delegate to ReviewService to get the review run by ID
-        // This is a placeholder implementation - needs proper method in ReviewService
         logger.debug("Fetching review run with ID: {}", runId);
-        // TODO: Implement proper getById method in ReviewService
-        return null;
+        return reviewService.findByRunId(runId).orElse(null);
     }
 }

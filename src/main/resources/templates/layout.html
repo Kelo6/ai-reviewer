@@ -12,7 +12,7 @@
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     
     <!-- Chart.js -->
-    <script th:src="@{/js/chart.min.js}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
     
     <!-- 自定义脚本 -->
     <script th:src="@{/js/charts.js}"></script>
@@ -20,40 +20,14 @@
     <meta name="htmx-config" content='{"globalViewTransitions":true}'>
 </head>
 <body>
-    <!-- 导航栏 -->
-    <nav class="navbar" th:fragment="navbar">
-        <div class="container">
-            <div class="navbar-content">
-                <a class="navbar-brand" th:href="@{/dashboard}">
-                    🤖 AI Reviewer
-                </a>
-                <ul class="navbar-nav" sec:authorize="isAuthenticated()">
-                    <li><a class="nav-link" th:href="@{/dashboard}" th:classappend="${#httpServletRequest.requestURI == '/dashboard' or #httpServletRequest.requestURI == '/' ? 'active' : ''}">仪表板</a></li>
-                    <li class="nav-item">
-                        <span class="nav-link" sec:authentication="name">用户</span>
-                    </li>
-                    <li class="nav-item">
-                        <form th:action="@{/logout}" method="post" style="display: inline;">
-                            <button type="submit" class="btn btn-outline btn-sm">退出登录</button>
-                        </form>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <!-- 主导航栏 -->
+    <div th:replace="~{fragments/navigation :: main-navigation}"></div>
 
     <!-- 主要内容区域 -->
     <main class="main-content">
         <div class="container">
             <!-- 面包屑导航 -->
-            <nav th:if="${breadcrumbs != null}" class="breadcrumb mb-3" th:fragment="breadcrumb">
-                <ol class="breadcrumb-list">
-                    <li th:each="crumb : ${breadcrumbs}" class="breadcrumb-item">
-                        <a th:if="${crumb.url != null}" th:href="${crumb.url}" th:text="${crumb.text}">链接</a>
-                        <span th:unless="${crumb.url != null}" th:text="${crumb.text}">当前页</span>
-                    </li>
-                </ol>
-            </nav>
+            <div th:if="${breadcrumbs != null}" th:replace="~{fragments/navigation :: breadcrumb-navigation(${breadcrumbs})}"></div>
             
             <!-- 错误消息 -->
             <div th:if="${error != null}" class="alert alert-error mb-3">
@@ -86,5 +60,8 @@
         <div class="spinner"></div>
         <span>加载中...</span>
     </div>
+    
+    <!-- 导航相关脚本 -->
+    <div th:replace="~{fragments/navigation :: navigation-scripts}"></div>
 </body>
 </html>

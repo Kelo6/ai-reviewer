@@ -1,0 +1,30 @@
+{
+  "runId": "test-run-123",
+  "timestamp": "2025-09-14 13:09:39",
+  "status": "COMPLETED",
+  "summary": {
+    "totalScore": 88.5,
+    "issuesFound": 35,
+    "tokenCost": 1.25,
+    "analysisTime": 2.8
+  },
+  "scores": {
+    "overall": 88.5,
+    "security": 85.0,
+    "maintainability": 92.0,
+    "performance": 87.0,
+    "codeStyle": 90.0
+  },
+  "statistics": {
+    "findingsBySeverity": {
+      "CRITICAL": 5,
+      "MAJOR": 12,
+      "MINOR": 18
+    }
+  },
+  "metadata": {
+    "aiModel": "Mock AI Reviewer",
+    "version": "1.0.0",
+    "note": "此报告是为运行ID test-run-123 动态生成的示例报告"
+  }
+}

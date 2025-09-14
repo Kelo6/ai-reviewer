@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+
+<!-- 模型列表片段 -->
+<div th:fragment="model-list">
+    <div th:if="${models != null and !models.isEmpty()}" class="model-grid">
+        <div th:each="model : ${models}" class="model-card" th:attr="data-type=${model.type.code}">
+            <!-- 启用/禁用开关 -->
+            <div class="toggle-switch">
+                <input type="checkbox" th:id="'toggle-' + ${model.id}" 
+                       th:checked="${model.enabled}"
+                       th:onchange="'toggleModel(\'' + ${model.id} + '\')'">
+                <label th:for="'toggle-' + ${model.id}"></label>
+            </div>
+            
+            <div class="model-header">
+                <div class="model-info">
+                    <div class="model-title">
+                        <span class="model-icon" th:text="${model.typeIcon}">🤖</span>
+                        <h3 class="model-name" th:text="${model.displayName ?: model.name}">模型名称</h3>
+                    </div>
+                    <div class="model-type" th:text="${model.type.displayName}">模型类型</div>
+                    <div class="model-status" 
+                         th:classappend="'status-' + ${model.status.code}">
+                        <span th:text="${model.statusIcon}">✅</span>
+                        <span th:text="${model.status.displayName}">已连接</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="model-description" th:if="${model.description}" 
+                 th:text="${model.description}">模型描述</div>
+            
+            <!-- AI模型统计 -->
+            <div th:if="${model.isAiModel()}" class="model-stats">
+                <div class="model-stat" th:if="${model.totalRequests != null}">
+                    <span>总请求数</span>
+                    <span th:text="${model.totalRequests ?: 0}">0</span>
+                </div>
+                <div class="model-stat" th:if="${model.totalRequests != null and model.totalRequests > 0}">
+                    <span>成功率</span>
+                    <span th:text="${#numbers.formatDecimal(model.successRate ?: 0, 0, 1)} + '%'">0%</span>
+                </div>
+                <div class="model-stat" th:if="${model.averageResponseTime != null}">
+                    <span>响应时间</span>
+                    <span th:text="${#numbers.formatDecimal(model.averageResponseTime, 0, 0)} + 'ms'">0ms</span>
+                </div>
+                <div class="model-stat" th:if="${model.estimatedCost != null}">
+                    <span>估算成本</span>
+                    <span th:text="'$' + ${#numbers.formatDecimal(model.estimatedCost, 0, 2)}">$0.00</span>
+                </div>
+            </div>
+            
+            <!-- 静态分析工具统计 -->
+            <div th:if="${model.isStaticAnalyzer()}" class="model-stats">
+                <div class="model-stat" th:if="${model.supportedLanguages != null}">
+                    <span>支持语言</span>
+                    <span th:text="${#lists.size(model.supportedLanguages)}">0</span>
+                </div>
+                <div class="model-stat" th:if="${model.supportedFileTypes != null}">
+                    <span>文件类型</span>
+                    <span th:text="${#lists.size(model.supportedFileTypes)}">0</span>
+                </div>
+                <div class="model-stat" th:if="${model.totalRequests != null}">
+                    <span>分析次数</span>
+                    <span th:text="${model.totalRequests ?: 0}">0</span>
+                </div>
+                <div class="model-stat" th:if="${model.averageResponseTime != null}">
+                    <span>平均耗时</span>
+                    <span th:text="${#numbers.formatDecimal(model.averageResponseTime / 1000, 0, 1)} + 's'">0s</span>
+                </div>
+            </div>
+            
+            <div class="model-actions">
+                <div class="model-actions-row">
+                    <button class="btn-small btn-success" 
+                            th:onclick="'testModel(\'' + ${model.id} + '\')'">
+                        <span th:if="${model.isAiModel()}">🔍 测试连接</span>
+                        <span th:if="${model.isStaticAnalyzer()}">🔍 测试工具</span>
+                    </button>
+                    <button class="btn-small" 
+                            th:onclick="'editModel(\'' + ${model.id} + '\')'">
+                        ✏️ 编辑
+                    </button>
+                </div>
+                <div class="model-actions-row">
+                    <button class="btn-small" 
+                            th:onclick="'showModelDetails(\'' + ${model.id} + '\')'">
+                        📊 详情
+                    </button>
+                    <button class="btn-small" 
+                            th:onclick="'cloneModel(\'' + ${model.id} + '\')'">
+                        📋 复制
+                    </button>
+                </div>
+                <div class="model-actions-row">
+                    <button class="btn-small btn-danger" 
+                            th:onclick="'deleteModel(\'' + ${model.id} + '\')'">
+                        🗑️ 删除
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 空状态 -->
+    <div th:if="${models == null or models.isEmpty()}" class="empty-state">
+        <div class="empty-state-icon">🤖</div>
+        <h3>没有找到模型</h3>
+        <p>当前筛选条件下没有找到模型配置</p>
+    </div>
+</div>
+
+<!-- 错误状态 -->
+<div th:fragment="model-list-error">
+    <div class="error-state">
+        <div class="error-icon">❌</div>
+        <h3>加载失败</h3>
+        <p th:text="${error}">加载模型列表时发生错误</p>
+        <button class="btn btn-primary" onclick="location.reload()">
+            🔄 重新加载
+        </button>
+    </div>
+</div>
+
+<style>
+    .error-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #dc2626;
+    }
+    
+    .error-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+    
+    .model-actions-row {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .model-actions-row:last-child {
+        margin-bottom: 0;
+    }
+</style>
+
+<script>
+    // 显示模型详情
+    function showModelDetails(modelId) {
+        // 可以在模态框中显示详情，或者跳转到详情页面
+        console.log('Show details for model:', modelId);
+        
+        // 示例：在模态框中显示详情
+        fetch(`/models/${modelId}/details`)
+            .then(response => response.text())
+            .then(html => {
+                // 创建详情模态框
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay';
+                modal.innerHTML = `
+                    <div class="modal">
+                        <div class="modal-header">
+                            <h2 class="modal-title">模型详情</h2>
+                            <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            ${html}
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // 点击外部关闭
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        modal.remove();
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Failed to load model details:', error);
+                alert('加载模型详情失败');
+            });
+    }
+</script>
+</html>

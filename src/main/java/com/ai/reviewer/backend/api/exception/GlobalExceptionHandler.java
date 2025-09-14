@@ -10,6 +10,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.regex.Pattern;
 
@@ -19,7 +20,7 @@ import java.util.regex.Pattern;
  * <p>统一处理API异常，屏蔽敏感信息（密钥、提示词等），
  * 返回标准格式的错误响应。
  */
-@RestControllerAdvice
+@RestControllerAdvice(basePackages = "com.ai.reviewer.backend.api")
 public class GlobalExceptionHandler {
     
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
@@ -96,6 +97,32 @@ public class GlobalExceptionHandler {
     }
     
     /**
+     * 处理静态资源未找到异常。
+     * 特别处理Chrome DevTools和其他浏览器工具的自动请求，避免产生无用的错误日志。
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNoResourceFoundException(
+            NoResourceFoundException ex, HttpServletRequest request) {
+        
+        String requestPath = request.getRequestURI();
+        
+        // 检查是否是浏览器工具的自动请求
+        if (isBrowserToolRequest(requestPath)) {
+            // 对于浏览器工具请求，只记录DEBUG级别日志，不记录为错误
+            logger.debug("Browser tool request for non-existent resource: {}", requestPath);
+        } else {
+            // 对于其他资源请求，记录为WARNING级别
+            logger.warn("Static resource not found - Path: {}, Method: {}", 
+                requestPath, request.getMethod());
+        }
+        
+        // 返回标准的404响应
+        ApiResponse<Void> response = ApiResponse.error("RESOURCE_NOT_FOUND", 
+            "请求的资源不存在: " + requestPath);
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+    
+    /**
      * 处理所有其他异常。
      */
     @ExceptionHandler(Exception.class)
@@ -150,5 +177,26 @@ public class GlobalExceptionHandler {
             case "SERVICE_UNAVAILABLE" -> HttpStatus.SERVICE_UNAVAILABLE;
             default -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
+    }
+    
+    /**
+     * 检查是否是浏览器工具的自动请求。
+     * 这些请求通常是浏览器或开发者工具自动发起的，不是用户的实际请求。
+     */
+    private boolean isBrowserToolRequest(String requestPath) {
+        if (requestPath == null) {
+            return false;
+        }
+        
+        // Chrome DevTools 相关请求
+        if (requestPath.contains(".well-known/appspecific/com.chrome.devtools")) {
+            return true;
+        }
+        
+        // 其他常见的浏览器工具请求
+        return requestPath.matches("(?i).*/(favicon\\.ico|robots\\.txt|sitemap\\.xml|" +
+                                 "apple-touch-icon.*\\.png|browserconfig\\.xml|" +
+                                 "manifest\\.json|\\.well-known/.*|" +
+                                 "sw\\.js|serviceworker\\.js)$");
     }
 }

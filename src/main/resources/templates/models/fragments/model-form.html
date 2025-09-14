@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+
+<!-- 模型配置表单 -->
+<div th:fragment="model-form">
+    <form id="model-form" onsubmit="saveModel(event)">
+        <!-- 基础信息 -->
+        <div class="form-section">
+            <h3 class="form-section-title">基础信息</h3>
+            
+            <div class="form-group">
+                <label for="model-name" class="form-label">模型名称 *</label>
+                <input type="text" id="model-name" name="name" class="form-input" 
+                       th:value="${model.name}" required 
+                       placeholder="请输入模型名称">
+            </div>
+            
+            <div class="form-group">
+                <label for="model-display-name" class="form-label">显示名称</label>
+                <input type="text" id="model-display-name" name="displayName" class="form-input" 
+                       th:value="${model.displayName}" 
+                       placeholder="请输入显示名称（可选）">
+            </div>
+            
+            <div class="form-group">
+                <label for="model-type" class="form-label">模型类型 *</label>
+                <div th:if="${!isNew}" class="form-input-readonly">
+                    <span th:text="${model.type?.displayName ?: '未知类型'}" class="readonly-value">模型类型</span>
+                    <small class="form-help">编辑模式下不能更改模型类型</small>
+                    <input type="hidden" id="model-type" name="type" th:value="${model.type?.name()}">
+                </div>
+                <select th:if="${isNew}" id="model-type" name="type" class="form-select" required 
+                        onchange="handleFormTypeChange()">
+                    <option value="">请选择模型类型</option>
+                    <option th:each="type : ${modelTypes}" 
+                            th:value="${type.name()}" 
+                            th:text="${type.displayName}"
+                            th:selected="${model.type != null and model.type.name() == type.name()}">
+                        模型类型
+                    </option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="model-description" class="form-label">描述</label>
+                <textarea id="model-description" name="description" class="form-textarea" 
+                          th:text="${model.description}" 
+                          placeholder="请输入模型描述（可选）"></textarea>
+            </div>
+        </div>
+        
+        <!-- AI模型配置 -->
+        <div id="ai-config" class="form-section" style="display: none;">
+            <h3 class="form-section-title">AI模型配置</h3>
+            
+            <div class="form-group">
+                <label for="api-url" class="form-label">API地址 *</label>
+                <input type="url" id="api-url" name="apiUrl" class="form-input" 
+                       th:value="${model.apiUrl}" 
+                       placeholder="https://api.openai.com/v1/chat/completions">
+            </div>
+            
+            <div class="form-group">
+                <label for="api-key" class="form-label">API密钥 *</label>
+                <input type="password" id="api-key" name="apiKey" class="form-input" 
+                       th:value="${model.apiKey}" 
+                       placeholder="请输入API密钥">
+                <small class="form-help">密钥将被安全存储，不会在界面中显示</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="model-name-field" class="form-label">模型名称 *</label>
+                <input type="text" id="model-name-field" name="modelName" class="form-input" 
+                       th:value="${model.modelName}" 
+                       placeholder="gpt-4o">
+            </div>
+            
+            <div class="form-group">
+                <label for="model-version" class="form-label">模型版本</label>
+                <input type="text" id="model-version" name="modelVersion" class="form-input" 
+                       th:value="${model.modelVersion}" 
+                       placeholder="v1.0">
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="max-tokens" class="form-label">最大令牌数</label>
+                    <input type="number" id="max-tokens" name="maxTokens" class="form-input" 
+                           th:value="${model.maxTokens}" 
+                           min="1" max="8192" 
+                           placeholder="2000">
+                </div>
+                
+                <div class="form-group">
+                    <label for="temperature" class="form-label">温度值</label>
+                    <input type="number" id="temperature" name="temperature" class="form-input" 
+                           th:value="${model.temperature}" 
+                           min="0" max="2" step="0.1" 
+                           placeholder="0.3">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="timeout-seconds" class="form-label">超时时间(秒)</label>
+                    <input type="number" id="timeout-seconds" name="timeoutSeconds" class="form-input" 
+                           th:value="${model.timeoutSeconds}" 
+                           min="10" max="300" 
+                           placeholder="60">
+                </div>
+                
+                <div class="form-group">
+                    <label for="max-concurrent" class="form-label">最大并发数</label>
+                    <input type="number" id="max-concurrent" name="maxConcurrentRequests" class="form-input" 
+                           th:value="${model.maxConcurrentRequests}" 
+                           min="1" max="20" 
+                           placeholder="5">
+                </div>
+            </div>
+        </div>
+        
+        <!-- 静态分析工具配置 -->
+        <div id="static-config" class="form-section" style="display: none;">
+            <h3 class="form-section-title">静态分析工具配置</h3>
+            
+            <div class="form-group">
+                <label for="tool-path" class="form-label">工具路径 *</label>
+                <input type="text" id="tool-path" name="toolPath" class="form-input" 
+                       th:value="${model.toolPath}" 
+                       placeholder="/usr/local/bin/eslint">
+                <small class="form-help">请输入工具的完整路径</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="config-file" class="form-label">配置文件</label>
+                <input type="text" id="config-file" name="configFile" class="form-input" 
+                       th:value="${model.configFile}" 
+                       placeholder=".eslintrc.json">
+            </div>
+            
+            <div class="form-group">
+                <label for="supported-languages" class="form-label">支持的语言</label>
+                <input type="text" id="supported-languages" name="supportedLanguages" class="form-input" 
+                       th:value="${model.supportedLanguages != null ? #strings.listJoin(model.supportedLanguages, ', ') : ''}" 
+                       placeholder="java, javascript, typescript">
+                <small class="form-help">多个语言用逗号分隔</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="supported-file-types" class="form-label">支持的文件类型</label>
+                <input type="text" id="supported-file-types" name="supportedFileTypes" class="form-input" 
+                       th:value="${model.supportedFileTypes != null ? #strings.listJoin(model.supportedFileTypes, ', ') : ''}" 
+                       placeholder=".js, .jsx, .ts, .tsx">
+                <small class="form-help">多个文件类型用逗号分隔</small>
+            </div>
+        </div>
+        
+        <!-- 支持的维度 -->
+        <div class="form-section">
+            <h3 class="form-section-title">支持的质量维度</h3>
+            <div class="checkbox-group">
+                <div th:each="dimension : ${dimensions}" class="checkbox-item">
+                    <input type="checkbox" th:id="'dim-' + ${dimension.name()}" 
+                           name="supportedDimensions" th:value="${dimension.name()}"
+                           th:checked="${model.supportedDimensions != null and model.supportedDimensions.contains(dimension)}">
+                    <label th:for="'dim-' + ${dimension.name()}" th:text="${dimension.name()}">维度</label>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 高级配置 -->
+        <div class="form-section">
+            <h3 class="form-section-title">高级配置</h3>
+            
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="enabled" name="enabled" 
+                           th:checked="${model.enabled}">
+                    启用此模型
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label for="exclude-patterns" class="form-label">排除模式</label>
+                <textarea id="exclude-patterns" name="excludePatterns" class="form-textarea" 
+                          th:text="${model.excludePatterns != null ? #strings.listJoin(model.excludePatterns, '&#10;') : ''}" 
+                          placeholder="每行一个排除模式，支持通配符"></textarea>
+                <small class="form-help">用于排除不需要分析的文件或规则</small>
+            </div>
+        </div>
+        
+        <!-- 隐藏字段 -->
+        <input type="hidden" id="model-id" name="id" th:value="${model.id}">
+        
+        <!-- 表单按钮 -->
+        <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">
+                取消
+            </button>
+            <button type="button" class="btn btn-outline" onclick="testModelConnection()">
+                🔍 测试连接
+            </button>
+            <button type="submit" class="btn btn-primary">
+                💾 保存配置
+            </button>
+        </div>
+    </form>
+</div>
+
+<style>
+    .form-section {
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .form-section:last-child {
+        border-bottom: none;
+    }
+    
+    .form-section-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 1rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+    
+    .form-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-input, .form-select, .form-textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        transition: border-color 0.2s ease;
+    }
+    
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .form-textarea {
+        min-height: 80px;
+        resize: vertical;
+    }
+    
+    .form-help {
+        display: block;
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+    }
+    
+    .checkbox-group {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.5rem;
+    }
+    
+    .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .checkbox-item input[type="checkbox"] {
+        width: auto;
+    }
+    
+    .form-input-readonly {
+        padding: 0.75rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        background-color: #f9fafb;
+        font-size: 0.875rem;
+    }
+    
+    .readonly-value {
+        font-weight: 500;
+        color: #374151;
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+    
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e5e7eb;
+    }
+    
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        border: 1px solid transparent;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-primary {
+        background: #3b82f6;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #2563eb;
+    }
+    
+    .btn-secondary {
+        background: #6b7280;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background: #4b5563;
+    }
+    
+    .btn-outline {
+        background: white;
+        color: #374151;
+        border-color: #d1d5db;
+    }
+    
+    .btn-outline:hover {
+        background: #f9fafb;
+        border-color: #9ca3af;
+    }
+</style>
+
+<script>
+    // 初始化表单
+    document.addEventListener('DOMContentLoaded', function() {
+        handleFormTypeChange();
+    });
+    
+    // 处理模型类型变化
+    function handleFormTypeChange() {
+        const typeSelect = document.getElementById('model-type');
+        if (!typeSelect) return;
+        
+        // 获取选中的类型（可能是select的值或hidden input的值）
+        let selectedType = '';
+        if (typeSelect.tagName === 'SELECT') {
+            selectedType = typeSelect.value;
+        } else if (typeSelect.tagName === 'INPUT' && typeSelect.type === 'hidden') {
+            selectedType = typeSelect.value;
+        }
+        
+        const aiConfig = document.getElementById('ai-config');
+        const staticConfig = document.getElementById('static-config');
+        
+        if (!aiConfig || !staticConfig) return;
+        
+        // 隐藏所有配置区域
+        aiConfig.style.display = 'none';
+        staticConfig.style.display = 'none';
+        
+        // 根据类型显示对应配置
+        if (selectedType === 'COMMERCIAL_AI' || selectedType === 'LOCAL_AI') {
+            aiConfig.style.display = 'block';
+            
+            // 设置必填字段
+            const apiUrlField = document.getElementById('api-url');
+            const apiKeyField = document.getElementById('api-key');
+            const modelNameField = document.getElementById('model-name-field');
+            
+            if (apiUrlField && apiKeyField && modelNameField) {
+                apiUrlField.required = true;
+                apiKeyField.required = true;
+                modelNameField.required = true;
+                
+                // 设置默认值
+                if (selectedType === 'COMMERCIAL_AI') {
+                    apiUrlField.placeholder = 'https://api.openai.com/v1/chat/completions';
+                    modelNameField.placeholder = 'gpt-4o';
+                } else {
+                    apiUrlField.placeholder = 'http://localhost:11434/api/generate';
+                    modelNameField.placeholder = 'deepseek-coder:6.7b';
+                }
+            }
+        } else if (selectedType === 'STATIC_ANALYZER') {
+            staticConfig.style.display = 'block';
+        }
+    }
+    
+    // 测试模型连接
+    function testModelConnection() {
+        const formData = collectFormData();
+        
+        if (!validateFormData(formData)) {
+            return;
+        }
+        
+        const button = event.target;
+        const originalText = button.textContent;
+        
+        button.textContent = '测试中...';
+        button.disabled = true;
+        
+        fetch('/models/test', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok) {
+                alert('连接测试成功！\n\n' + JSON.stringify(data.data, null, 2));
+            } else {
+                alert('连接测试失败：\n\n' + (data.error.message || '未知错误'));
+            }
+        })
+        .catch(error => {
+            console.error('测试连接失败:', error);
+            alert('测试连接失败：' + error.message);
+        })
+        .finally(() => {
+            button.textContent = originalText;
+            button.disabled = false;
+        });
+    }
+    
+    // 保存模型配置（由主页面的saveModel函数处理）
+    // 该函数已移至model-management.html
+    
+    // 收集表单数据
+    function collectFormData() {
+        const form = document.getElementById('model-form');
+        const formData = new FormData(form);
+        const data = {};
+        
+        // 基础字段
+        data.id = formData.get('id') || generateModelId();
+        data.name = formData.get('name');
+        data.displayName = formData.get('displayName');
+        data.type = formData.get('type');
+        data.description = formData.get('description');
+        data.enabled = formData.has('enabled');
+        
+        // AI模型特定字段
+        if (data.type === 'COMMERCIAL_AI' || data.type === 'LOCAL_AI') {
+            data.apiUrl = formData.get('apiUrl');
+            data.apiKey = formData.get('apiKey');
+            data.modelName = formData.get('modelName');
+            data.modelVersion = formData.get('modelVersion');
+            data.maxTokens = formData.get('maxTokens') ? parseInt(formData.get('maxTokens')) : null;
+            data.temperature = formData.get('temperature') ? parseFloat(formData.get('temperature')) : null;
+            data.timeoutSeconds = formData.get('timeoutSeconds') ? parseInt(formData.get('timeoutSeconds')) : null;
+            data.maxConcurrentRequests = formData.get('maxConcurrentRequests') ? parseInt(formData.get('maxConcurrentRequests')) : null;
+        }
+        
+        // 静态分析工具特定字段
+        if (data.type === 'STATIC_ANALYZER') {
+            data.toolPath = formData.get('toolPath');
+            data.configFile = formData.get('configFile');
+            
+            const languages = formData.get('supportedLanguages');
+            data.supportedLanguages = languages ? languages.split(',').map(s => s.trim()).filter(s => s) : [];
+            
+            const fileTypes = formData.get('supportedFileTypes');
+            data.supportedFileTypes = fileTypes ? fileTypes.split(',').map(s => s.trim()).filter(s => s) : [];
+        }
+        
+        // 支持的维度
+        const dimensions = [];
+        formData.getAll('supportedDimensions').forEach(dim => {
+            if (dim) dimensions.push(dim);
+        });
+        data.supportedDimensions = dimensions;
+        
+        // 排除模式
+        const excludePatterns = formData.get('excludePatterns');
+        data.excludePatterns = excludePatterns ? excludePatterns.split('\n').map(s => s.trim()).filter(s => s) : [];
+        
+        return data;
+    }
+    
+    // 验证表单数据
+    function validateFormData(data) {
+        if (!data.name || data.name.trim() === '') {
+            alert('请输入模型名称');
+            return false;
+        }
+        
+        if (!data.type) {
+            alert('请选择模型类型');
+            return false;
+        }
+        
+        if (data.type === 'COMMERCIAL_AI' || data.type === 'LOCAL_AI') {
+            if (!data.apiUrl || data.apiUrl.trim() === '') {
+                alert('请输入API地址');
+                return false;
+            }
+            
+            if (data.type === 'COMMERCIAL_AI' && (!data.apiKey || data.apiKey.trim() === '')) {
+                alert('请输入API密钥');
+                return false;
+            }
+            
+            if (!data.modelName || data.modelName.trim() === '') {
+                alert('请输入模型名称');
+                return false;
+            }
+        }
+        
+        if (data.type === 'STATIC_ANALYZER') {
+            if (!data.toolPath || data.toolPath.trim() === '') {
+                alert('请输入工具路径');
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    // 生成模型ID（由主页面的generateModelId函数处理）
+    // 该函数已移至model-management.html
+    
+    // 表单初始化函数
+    function initializeModelForm() {
+        console.log('Initializing model form...');
+        
+        setTimeout(() => {
+            const typeSelect = document.getElementById('model-type');
+            if (typeSelect) {
+                console.log('Model type found:', typeSelect.value);
+                typeSelect.addEventListener('change', handleFormTypeChange);
+                handleFormTypeChange(); // 触发初始显示
+            } else {
+                console.error('Model type select not found');
+            }
+        }, 100);
+    }
+</script>
+</html>

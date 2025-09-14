@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="zh-CN" 
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模型管理 - AI Reviewer</title>
+    
+    <!-- 样式文件 -->
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+    
+    
+    <meta name="htmx-config" content='{"globalViewTransitions":true}'>
+    <style>
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .model-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .model-card:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+        }
+        
+        .model-header {
+            display: flex;
+            justify-content: between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        
+        .model-info {
+            flex: 1;
+        }
+        
+        .model-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .model-icon {
+            font-size: 1.25rem;
+        }
+        
+        .model-name {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #111827;
+            margin: 0;
+        }
+        
+        .model-type {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+        
+        .model-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .status-connected {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .status-configured {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-disabled {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+        
+        .model-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .model-actions-row {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn-small {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            background: white;
+            color: #374151;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex: 1;
+            text-align: center;
+        }
+        
+        .btn-small:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+            border-color: #2563eb;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .btn-warning {
+            background: #f59e0b;
+            border-color: #f59e0b;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            border-color: #ef4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1.25rem;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #111827;
+        }
+        
+        .stat-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+        
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #111827;
+            margin: 2rem 0 1rem 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #6b7280;
+        }
+        
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .model-description {
+            font-size: 0.875rem;
+            color: #6b7280;
+            line-height: 1.4;
+            margin: 0.5rem 0;
+        }
+        
+        .model-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+        
+        .model-stat {
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .toggle-switch {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+        }
+        
+        .toggle-switch input[type="checkbox"] {
+            display: none;
+        }
+        
+        .toggle-switch label {
+            display: block;
+            width: 44px;
+            height: 24px;
+            background: #e5e7eb;
+            border-radius: 12px;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.2s ease;
+        }
+        
+        .toggle-switch label:before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s ease;
+        }
+        
+        .toggle-switch input[type="checkbox"]:checked + label {
+            background: #10b981;
+        }
+        
+        .toggle-switch input[type="checkbox"]:checked + label:before {
+            transform: translateX(20px);
+        }
+        
+        .modal-overlay {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            background: rgba(0, 0, 0, 0.6) !important;
+            align-items: center !important;
+            justify-content: center !important;
+            z-index: 9999 !important;
+            backdrop-filter: blur(2px);
+            /* 不设置display，让HTML的style="display: none"生效 */
+        }
+        
+        .modal-overlay.show {
+            display: flex !important;
+        }
+        
+        .modal {
+            background: white !important;
+            border-radius: 12px !important;
+            padding: 2rem !important;
+            max-width: 600px !important;
+            width: 90% !important;
+            max-height: 80vh !important;
+            overflow-y: auto !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+            transform: scale(1) !important;
+            opacity: 1 !important;
+            position: relative !important;
+            z-index: 10000 !important;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #111827;
+            margin: 0;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+        
+        .close-btn:hover {
+            background: #f3f4f6;
+        }
+        
+        .message {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        
+        .message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        
+        .message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .filter-tabs {
+            display: flex;
+            gap: 0.25rem;
+            background: #f3f4f6;
+            padding: 0.25rem;
+            border-radius: 8px;
+        }
+        
+        .filter-tab {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+            color: #6b7280;
+            transition: all 0.2s ease;
+        }
+        
+        .filter-tab.active {
+            background: white;
+            color: #111827;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 导航栏 -->
+    <div th:replace="~{fragments/simple-navigation :: main-navigation}"></div>
+    
+    <main class="main-content">
+    <!-- 页面标题 -->
+    <div th:replace="~{fragments/simple-navigation :: page-header('模型管理', '管理AI模型和静态分析工具配置', '')}"></div>
+    
+    <div class="container">
+        <!-- 消息提示 -->
+        <div id="message" class="message"></div>
+        
+        <!-- 错误提示 -->
+        <div th:if="${error}" class="message error" style="display: block;">
+            <span th:text="${error}">错误信息</span>
+        </div>
+        
+        <!-- 统计信息 -->
+        <div class="stats-grid" th:if="${statistics}">
+            <div class="stat-card">
+                <div class="stat-value" th:text="${statistics.totalModels ?: 0}">0</div>
+                <div class="stat-label">总模型数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" th:text="${statistics.enabledModels ?: 0}">0</div>
+                <div class="stat-label">已启用</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" th:text="${statistics.connectedModels ?: 0}">0</div>
+                <div class="stat-label">已连接</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" th:text="${#numbers.formatDecimal(statistics.averageResponseTime ?: 0, 0, 0)}">0</div>
+                <div class="stat-label">平均响应时间(ms)</div>
+            </div>
+        </div>
+        
+        <!-- 操作栏 -->
+        <div class="action-bar">
+            <div class="filter-tabs">
+                <button class="filter-tab active" onclick="filterModels('all')">全部模型</button>
+                <button class="filter-tab" onclick="filterModels('ai')">AI模型</button>
+                <button class="filter-tab" onclick="filterModels('static')">静态分析</button>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn-small btn-primary" onclick="showAddModelModal()">
+                    ➕ 添加模型
+                </button>
+                <button class="btn-small btn-warning" onclick="testModal()" title="直接测试模态框">
+                    🧪 测试模态框
+                </button>
+                <button class="btn-small" onclick="refreshModels()">
+                    🔄 刷新状态
+                </button>
+            </div>
+        </div>
+        
+        <!-- AI模型 -->
+        <div th:if="${aiModels != null and !aiModels.isEmpty()}">
+            <h2 class="section-title">🤖 AI 模型</h2>
+            <div class="model-grid" id="ai-models">
+                <div th:each="model : ${aiModels}" class="model-card" th:attr="data-type=${model.type?.code ?: 'unknown'},data-model-id=${model.id ?: 'unknown'}">
+                    <!-- 启用/禁用开关 -->
+                    <div class="toggle-switch">
+                        <input type="checkbox" th:id="'toggle-' + ${model.id ?: 'unknown'}" 
+                               th:checked="${model.enabled ?: false}"
+                               onchange="toggleModelFromEvent(this)">
+                        <label th:for="'toggle-' + ${model.id ?: 'unknown'}"></label>
+                    </div>
+                    
+                    <div class="model-header">
+                        <div class="model-info">
+                            <div class="model-title">
+                                <span class="model-icon">🤖</span>
+                                <h3 class="model-name" th:text="${model.displayName ?: model.name ?: '未知模型'}">模型名称</h3>
+                            </div>
+                            <div class="model-type" th:text="${model.type?.displayName ?: '未知类型'}">模型类型</div>
+                            <div class="model-status" 
+                                 th:classappend="'status-' + ${model.status?.code ?: 'unknown'}">
+                                <span>✅</span>
+                                <span th:text="${model.status?.displayName ?: '未知状态'}">已连接</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="model-description" th:if="${model.description}" 
+                         th:text="${model.description}">模型描述</div>
+                    
+                    <div class="model-stats" th:if="${model.totalRequests}">
+                        <div class="model-stat">
+                            <span>总请求数</span>
+                            <span th:text="${model.totalRequests ?: 0}">0</span>
+                        </div>
+                        <div class="model-stat">
+                            <span>成功率</span>
+                            <span th:text="${#numbers.formatDecimal(model.successRate ?: 0, 0, 1)} + '%'">0%</span>
+                        </div>
+                        <div class="model-stat" th:if="${model.averageResponseTime}">
+                            <span>响应时间</span>
+                            <span th:text="${#numbers.formatDecimal(model.averageResponseTime ?: 0, 0, 0)} + 'ms'">0ms</span>
+                        </div>
+                        <div class="model-stat" th:if="${model.estimatedCost}">
+                            <span>估算成本</span>
+                            <span th:text="'$' + ${#numbers.formatDecimal(model.estimatedCost ?: 0, 0, 2)}">$0.00</span>
+                        </div>
+                    </div>
+                    
+                    <div class="model-actions">
+                        <div class="model-actions-row">
+                            <button class="btn-small btn-success" 
+                                    onclick="testModelFromEvent(this)">
+                                🔍 测试连接
+                            </button>
+                            <button class="btn-small" 
+                                    onclick="editModelFromEvent(this)">
+                                ✏️ 编辑
+                            </button>
+                        </div>
+                        <div class="model-actions-row">
+                            <button class="btn-small" 
+                                    onclick="cloneModelFromEvent(this)">
+                                📋 复制
+                            </button>
+                            <button class="btn-small btn-danger" 
+                                    onclick="deleteModelFromEvent(this)">
+                                🗑️ 删除
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 静态分析工具 -->
+        <div th:if="${staticAnalyzers != null and !staticAnalyzers.isEmpty()}">
+            <h2 class="section-title">🔍 静态分析工具</h2>
+            <div class="model-grid" id="static-analyzers">
+                <div th:each="model : ${staticAnalyzers}" class="model-card" th:attr="data-type=${model.type?.code ?: 'unknown'},data-model-id=${model.id ?: 'unknown'}">
+                    <!-- 启用/禁用开关 -->
+                    <div class="toggle-switch">
+                        <input type="checkbox" th:id="'toggle-' + ${model.id ?: 'unknown'}" 
+                               th:checked="${model.enabled ?: false}"
+                               onchange="toggleModelFromEvent(this)">
+                        <label th:for="'toggle-' + ${model.id ?: 'unknown'}"></label>
+                    </div>
+                    
+                    <div class="model-header">
+                        <div class="model-info">
+                            <div class="model-title">
+                                <span class="model-icon">🔍</span>
+                                <h3 class="model-name" th:text="${model.displayName ?: model.name ?: '未知工具'}">工具名称</h3>
+                            </div>
+                            <div class="model-type" th:text="${model.type?.displayName ?: '静态分析工具'}">静态分析工具</div>
+                            <div class="model-status" 
+                                 th:classappend="'status-' + ${model.status?.code ?: 'unknown'}">
+                                <span>✅</span>
+                                <span th:text="${model.status?.displayName ?: '未知状态'}">已连接</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="model-description" th:if="${model.description}" 
+                         th:text="${model.description}">工具描述</div>
+                    
+                    <div class="model-stats" th:if="${model.supportedLanguages}">
+                        <div class="model-stat">
+                            <span>支持语言</span>
+                            <span th:text="${model.supportedLanguages ? #lists.size(model.supportedLanguages) : 0}">0</span>
+                        </div>
+                        <div class="model-stat" th:if="${model.totalRequests}">
+                            <span>分析次数</span>
+                            <span th:text="${model.totalRequests ?: 0}">0</span>
+                        </div>
+                    </div>
+                    
+                    <div class="model-actions">
+                        <div class="model-actions-row">
+                            <button class="btn-small btn-success" 
+                                    onclick="testModelFromEvent(this)">
+                                🔍 测试工具
+                            </button>
+                            <button class="btn-small" 
+                                    onclick="editModelFromEvent(this)">
+                                ✏️ 编辑
+                            </button>
+                        </div>
+                        <div class="model-actions-row">
+                            <button class="btn-small" 
+                                    onclick="cloneModelFromEvent(this)">
+                                📋 复制
+                            </button>
+                            <button class="btn-small btn-danger" 
+                                    onclick="deleteModelFromEvent(this)">
+                                🗑️ 删除
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 空状态 -->
+        <div th:if="${(aiModels == null or aiModels.isEmpty()) and (staticAnalyzers == null or staticAnalyzers.isEmpty())}" class="empty-state">
+            <div class="empty-state-icon">🤖</div>
+            <h3>还没有配置模型</h3>
+            <p>点击"添加模型"按钮开始配置您的第一个AI模型或静态分析工具</p>
+            <button class="btn btn-primary" onclick="showAddModelModal()">
+                ➕ 添加模型
+            </button>
+        </div>
+    </div>
+    
+    <!-- 模型配置表单模态框 -->
+    <div id="model-modal" class="modal-overlay" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-title">添加模型</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="model-form-container">
+                <!-- 表单内容将通过HTMX动态加载 -->
+            </div>
+        </div>
+    </div>
+    </main>
+
+    <!-- JavaScript 脚本 -->
+    <script>
+        // 检查必要的依赖是否加载
+        function checkDependencies() {
+            console.log('Dependencies check completed');
+        }
+        
+        // DOM加载完成后检查依赖
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(checkDependencies, 100);
+        });
+        
+        // 全局变量
+        let currentModelId = null;
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化过滤器
+            filterModels('all');
+        });
+        
+        // 显示消息
+        function showMessage(message, type = 'success') {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = message;
+            messageEl.className = 'message ' + type;
+            messageEl.style.display = 'block';
+            
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 5000);
+        }
+        
+        // 过滤模型
+        function filterModels(type) {
+            // 更新选项卡状态
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 找到对应的选项卡并设置为活动状态
+            const tabMap = {
+                'all': '全部模型',
+                'ai': 'AI模型', 
+                'static': '静态分析'
+            };
+            
+            const targetTab = Array.from(document.querySelectorAll('.filter-tab')).find(tab => 
+                tab.textContent.trim() === tabMap[type]
+            );
+            
+            if (targetTab) {
+                targetTab.classList.add('active');
+            } else if (event && event.target) {
+                // 如果是点击事件触发，直接使用event.target
+                event.target.classList.add('active');
+            }
+            
+            // 显示/隐藏模型卡片
+            document.querySelectorAll('.model-card').forEach(card => {
+                const modelType = card.getAttribute('data-type');
+                if (type === 'all') {
+                    card.style.display = 'block';
+                } else if (type === 'ai') {
+                    card.style.display = (modelType && modelType.includes('ai')) ? 'block' : 'none';
+                } else if (type === 'static') {
+                    card.style.display = (modelType === 'static-analyzer') ? 'block' : 'none';
+                }
+            });
+        }
+        
+        // 测试模态框功能（简单直接的测试）
+        function testModal() {
+            console.log('Testing modal directly...');
+            
+            const modelModal = document.getElementById('model-modal');
+            const formContainer = document.getElementById('model-form-container');
+            const modalTitle = document.getElementById('modal-title');
+            
+            console.log('Elements found:', {
+                modelModal: !!modelModal,
+                formContainer: !!formContainer,
+                modalTitle: !!modalTitle
+            });
+            
+            if (!modelModal) {
+                alert('模态框元素未找到！');
+                return;
+            }
+            
+            console.log('Before showing modal:', {
+                modalDisplay: modelModal.style.display,
+                modalClasses: modelModal.className,
+                modalBounds: modelModal.getBoundingClientRect()
+            });
+            
+            modalTitle.textContent = '🧪 测试模态框';
+            formContainer.innerHTML = '<div style="padding: 30px; text-align: center; background: white; border: 2px solid #007bff; border-radius: 8px;"><h3 style="color: #007bff;">✅ 模态框正常工作！</h3><p style="margin: 15px 0;">如果您能看到这个消息，说明模态框基础功能正常。</p><button class="btn btn-primary" onclick="closeModal()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">关闭测试</button></div>';
+            
+            // 使用CSS类显示模态框
+            modelModal.classList.add('show');
+            
+            console.log('After showing modal:', {
+                modalDisplay: modelModal.style.display,
+                modalBounds: modelModal.getBoundingClientRect(),
+                computedStyle: window.getComputedStyle(modelModal).display
+            });
+            
+            // 检查是否真的可见
+            setTimeout(() => {
+                const rect = modelModal.getBoundingClientRect();
+                console.log('Modal visibility check:', {
+                    width: rect.width,
+                    height: rect.height,
+                    top: rect.top,
+                    left: rect.left,
+                    isVisible: rect.width > 0 && rect.height > 0
+                });
+                
+                if (rect.width === 0 || rect.height === 0) {
+                    alert('模态框创建成功但不可见！请查看控制台日志了解详情。');
+                }
+            }, 100);
+        }
+
+        // 显示添加模型模态框
+        function showAddModelModal() {
+            console.log('showAddModelModal called');
+            currentModelId = null;
+            
+            try {
+                const modalTitle = document.getElementById('modal-title');
+                const modelModal = document.getElementById('model-modal');
+                const formContainer = document.getElementById('model-form-container');
+                
+                console.log('Modal elements:', {
+                    modalTitle: modalTitle ? 'found' : 'not found',
+                    modelModal: modelModal ? 'found' : 'not found',
+                    formContainer: formContainer ? 'found' : 'not found'
+                });
+                
+                if (!modalTitle || !modelModal || !formContainer) {
+                    console.error('Required modal elements not found');
+                    alert('页面加载错误：缺少模态框元素');
+                    return;
+                }
+                
+                modalTitle.textContent = '添加模型';
+                
+                // 加载表单，默认选择商业AI类型
+                console.log('Fetching form...');
+                fetch('/models/form?type=COMMERCIAL_AI')
+                    .then(response => {
+                        console.log('Form response status:', response.status);
+                        if (!response.ok) {
+                            throw new Error('HTTP ' + response.status);
+                        }
+                        return response.text();
+                    })
+                    .then(html => {
+                        console.log('Form HTML loaded, length:', html.length);
+                        formContainer.innerHTML = html;
+                        modelModal.classList.add('show');
+                        console.log('Modal should now be visible');
+                        
+                        // 直接初始化表单并显示AI配置
+                        setTimeout(() => {
+                            initializeFormAfterLoad();
+                        }, 100);
+                    })
+                    .catch(error => {
+                        console.error('加载表单失败:', error);
+                        showMessage('加载表单失败: ' + error.message, 'error');
+                        alert('加载表单失败: ' + error.message);
+                    });
+            } catch (e) {
+                console.error('showAddModelModal error:', e);
+                alert('模态框打开失败: ' + e.message);
+            }
+        }
+        
+        // 编辑模型
+        function editModel(modelId) {
+            currentModelId = modelId;
+            document.getElementById('modal-title').textContent = '编辑模型';
+            
+            // 加载表单
+            fetch(`/models/form?id=${modelId}`)
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('model-form-container').innerHTML = html;
+                    document.getElementById('model-modal').classList.add('show');
+                    
+                    // 直接初始化表单
+                    setTimeout(() => {
+                        initializeFormAfterLoad();
+                    }, 100);
+                })
+                .catch(error => {
+                    console.error('加载表单失败:', error);
+                    showMessage('加载表单失败', 'error');
+                });
+        }
+        
+        // 表单加载后的初始化函数
+        function initializeFormAfterLoad() {
+            console.log('Initializing form after load...');
+            
+            const typeSelect = document.getElementById('model-type');
+            if (typeSelect) {
+                console.log('Found model type element:', typeSelect.tagName, 'with value:', typeSelect.value);
+                
+                // 只为select元素添加change事件监听器
+                if (typeSelect.tagName === 'SELECT') {
+                    typeSelect.addEventListener('change', handleFormTypeChange);
+                }
+                
+                // 触发初始化显示（对select和hidden input都有效）
+                handleFormTypeChange();
+            } else {
+                console.error('Model type element not found');
+            }
+        }
+        
+        // 处理表单类型变化
+        function handleFormTypeChange() {
+            const typeSelect = document.getElementById('model-type');
+            if (!typeSelect) return;
+            
+            const selectedType = typeSelect.value;
+            console.log('Type changed to:', selectedType);
+            
+            const aiConfig = document.getElementById('ai-config');
+            const staticConfig = document.getElementById('static-config');
+            
+            if (!aiConfig || !staticConfig) {
+                console.error('Config sections not found');
+                return;
+            }
+            
+            // 隐藏所有配置区域
+            aiConfig.style.display = 'none';
+            staticConfig.style.display = 'none';
+            
+            // 根据类型显示对应配置
+            if (selectedType === 'COMMERCIAL_AI' || selectedType === 'LOCAL_AI') {
+                console.log('Showing AI config');
+                aiConfig.style.display = 'block';
+                
+                // 设置必填字段
+                const apiUrlField = document.getElementById('api-url');
+                const apiKeyField = document.getElementById('api-key');
+                const modelNameField = document.getElementById('model-name-field');
+                
+                if (apiUrlField && apiKeyField && modelNameField) {
+                    apiUrlField.required = true;
+                    apiKeyField.required = true;
+                    modelNameField.required = true;
+                    console.log('Required fields set');
+                } else {
+                    console.error('Required fields not found:', {
+                        apiUrl: !!apiUrlField, 
+                        apiKey: !!apiKeyField, 
+                        modelName: !!modelNameField
+                    });
+                }
+            } else if (selectedType === 'STATIC_ANALYZER') {
+                console.log('Showing static config');
+                staticConfig.style.display = 'block';
+            }
+        }
+        
+        // 保存模型配置
+        function saveModel(event) {
+            event.preventDefault();
+            console.log('Saving model...');
+            
+            const formData = collectFormData();
+            
+            if (!validateFormData(formData)) {
+                return;
+            }
+            
+            const submitButton = document.querySelector('#model-form button[type="submit"]');
+            if (!submitButton) {
+                console.error('Submit button not found');
+                return;
+            }
+            
+            const originalText = submitButton.textContent;
+            
+            submitButton.textContent = '保存中...';
+            submitButton.disabled = true;
+            
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            console.log('Sending data:', formData);
+            
+            fetch('/api/models', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Save response:', data);
+                if (data.ok) {
+                    showMessage('模型配置保存成功！', 'success');
+                    closeModal();
+                    // 刷新页面
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showMessage('保存失败：' + (data.error.message || '未知错误'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('保存失败:', error);
+                showMessage('保存失败：' + error.message, 'error');
+            })
+            .finally(() => {
+                submitButton.textContent = originalText;
+                submitButton.disabled = false;
+            });
+        }
+        
+        // 收集表单数据
+        function collectFormData() {
+            const form = document.getElementById('model-form');
+            if (!form) {
+                console.error('Form not found');
+                return null;
+            }
+            
+            const formData = new FormData(form);
+            const data = {};
+            
+            // 基础字段
+            data.id = formData.get('id') || generateModelId();
+            data.name = formData.get('name');
+            data.displayName = formData.get('displayName');
+            data.type = formData.get('type');
+            data.description = formData.get('description');
+            data.enabled = formData.has('enabled');
+            
+            // AI模型特定字段
+            if (data.type === 'COMMERCIAL_AI' || data.type === 'LOCAL_AI') {
+                data.apiUrl = formData.get('apiUrl');
+                data.apiKey = formData.get('apiKey');
+                data.modelName = formData.get('modelName');
+                data.modelVersion = formData.get('modelVersion');
+                data.maxTokens = formData.get('maxTokens') ? parseInt(formData.get('maxTokens')) : null;
+                data.temperature = formData.get('temperature') ? parseFloat(formData.get('temperature')) : null;
+                data.timeoutSeconds = formData.get('timeoutSeconds') ? parseInt(formData.get('timeoutSeconds')) : null;
+                data.maxConcurrentRequests = formData.get('maxConcurrentRequests') ? parseInt(formData.get('maxConcurrentRequests')) : null;
+                data.topP = formData.get('topP') ? parseFloat(formData.get('topP')) : null;
+            }
+            
+            // 静态分析工具特定字段
+            if (data.type === 'STATIC_ANALYZER') {
+                data.toolPath = formData.get('toolPath');
+                data.configFile = formData.get('configFile');
+                
+                // 处理数组字段
+                const excludePatterns = formData.get('excludePatterns');
+                if (excludePatterns) {
+                    data.excludePatterns = excludePatterns.split('\n').filter(p => p.trim());
+                }
+                
+                const supportedLanguages = formData.get('supportedLanguages');
+                if (supportedLanguages) {
+                    data.supportedLanguages = supportedLanguages.split(',').map(l => l.trim()).filter(l => l);
+                }
+                
+                const supportedFileTypes = formData.get('supportedFileTypes');
+                if (supportedFileTypes) {
+                    data.supportedFileTypes = supportedFileTypes.split(',').map(t => t.trim()).filter(t => t);
+                }
+                
+                // 处理维度数组
+                const dimensions = form.querySelectorAll('input[name="dimensions"]:checked');
+                data.supportedDimensions = Array.from(dimensions).map(d => d.value);
+            }
+            
+            return data;
+        }
+        
+        // 验证表单数据
+        function validateFormData(data) {
+            if (!data) {
+                showMessage('表单数据收集失败', 'error');
+                return false;
+            }
+            
+            if (!data.name || data.name.trim() === '') {
+                showMessage('模型名称不能为空', 'error');
+                return false;
+            }
+            
+            if (!data.type) {
+                showMessage('请选择模型类型', 'error');
+                return false;
+            }
+            
+            // AI模型特定验证
+            if (data.type === 'COMMERCIAL_AI' || data.type === 'LOCAL_AI') {
+                if (!data.apiUrl || data.apiUrl.trim() === '') {
+                    showMessage('API地址不能为空', 'error');
+                    return false;
+                }
+                
+                if (!data.apiKey || data.apiKey.trim() === '') {
+                    showMessage('API密钥不能为空', 'error');
+                    return false;
+                }
+                
+                if (!data.modelName || data.modelName.trim() === '') {
+                    showMessage('模型名称不能为空', 'error');
+                    return false;
+                }
+            }
+            
+            // 静态分析工具特定验证
+            if (data.type === 'STATIC_ANALYZER') {
+                if (!data.toolPath || data.toolPath.trim() === '') {
+                    showMessage('工具路径不能为空', 'error');
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        // 生成模型ID
+        function generateModelId() {
+            const typeSelect = document.getElementById('model-type');
+            const nameField = document.getElementById('model-name');
+            
+            if (!typeSelect || !nameField) {
+                return 'model-' + Date.now();
+            }
+            
+            const type = typeSelect.value;
+            const name = nameField.value;
+            
+            let prefix = 'model';
+            if (type === 'COMMERCIAL_AI') prefix = 'commercial';
+            else if (type === 'LOCAL_AI') prefix = 'local';
+            else if (type === 'STATIC_ANALYZER') prefix = 'static';
+            
+            const cleanName = name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+            const timestamp = Date.now();
+            
+            return `${prefix}-${cleanName}-${timestamp}`;
+        }
+        
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('model-modal').classList.remove('show');
+            currentModelId = null;
+        }
+        
+        // 测试模型连接
+        function testModel(modelId) {
+            const button = event.target;
+            const originalText = button.textContent;
+            
+            button.textContent = '测试中...';
+            button.disabled = true;
+            
+            // 获取模型配置
+            fetch(`/models/${modelId}/details`)
+                .then(response => response.text())
+                .then(html => {
+                    // 从详情中提取模型配置
+                    return extractModelConfig(html);
+                })
+                .then(config => {
+                    const headers = {
+                        'Content-Type': 'application/json'
+                    };
+                    
+                    return fetch('/api/models/test', {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify(config)
+                    });
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ok) {
+                        showMessage('连接测试成功', 'success');
+                        // 刷新页面以更新状态
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showMessage('连接测试失败: ' + (data.error.message || '未知错误'), 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('测试连接失败:', error);
+                    showMessage('测试连接失败', 'error');
+                })
+                .finally(() => {
+                    button.textContent = originalText;
+                    button.disabled = false;
+                });
+        }
+        
+        // 切换模型启用状态
+        function toggleModel(modelId) {
+            fetch(`/models/${modelId}/toggle`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    showMessage(data.data, 'success');
+                } else {
+                    showMessage('操作失败: ' + (data.error.message || '未知错误'), 'error');
+                    // 恢复开关状态
+                    const checkbox = document.getElementById(`toggle-${modelId}`);
+                    checkbox.checked = !checkbox.checked;
+                }
+            })
+            .catch(error => {
+                console.error('切换模型状态失败:', error);
+                showMessage('操作失败', 'error');
+                // 恢复开关状态
+                const checkbox = document.getElementById(`toggle-${modelId}`);
+                checkbox.checked = !checkbox.checked;
+            });
+        }
+        
+        // 从事件中获取模型ID并切换状态
+        function toggleModelFromEvent(element) {
+            const modelCard = element.closest('.model-card');
+            const modelId = modelCard ? modelCard.getAttribute('data-model-id') : null;
+            if (modelId) {
+                toggleModel(modelId);
+            } else {
+                console.error('无法获取模型ID');
+                showMessage('操作失败：无法获取模型ID', 'error');
+            }
+        }
+        
+        // 从事件中获取模型ID并测试连接
+        function testModelFromEvent(element) {
+            const modelCard = element.closest('.model-card');
+            const modelId = modelCard ? modelCard.getAttribute('data-model-id') : null;
+            if (modelId) {
+                testModel(modelId);
+            } else {
+                console.error('无法获取模型ID');
+                showMessage('操作失败：无法获取模型ID', 'error');
+            }
+        }
+        
+        // 从事件中获取模型ID并编辑
+        function editModelFromEvent(element) {
+            const modelCard = element.closest('.model-card');
+            const modelId = modelCard ? modelCard.getAttribute('data-model-id') : null;
+            if (modelId) {
+                editModel(modelId);
+            } else {
+                console.error('无法获取模型ID');
+                showMessage('操作失败：无法获取模型ID', 'error');
+            }
+        }
+        
+        // 从事件中获取模型ID并复制
+        function cloneModelFromEvent(element) {
+            const modelCard = element.closest('.model-card');
+            const modelId = modelCard ? modelCard.getAttribute('data-model-id') : null;
+            if (modelId) {
+                cloneModel(modelId);
+            } else {
+                console.error('无法获取模型ID');
+                showMessage('操作失败：无法获取模型ID', 'error');
+            }
+        }
+        
+        // 从事件中获取模型ID并删除
+        function deleteModelFromEvent(element) {
+            const modelCard = element.closest('.model-card');
+            const modelId = modelCard ? modelCard.getAttribute('data-model-id') : null;
+            if (modelId) {
+                deleteModel(modelId);
+            } else {
+                console.error('无法获取模型ID');
+                showMessage('操作失败：无法获取模型ID', 'error');
+            }
+        }
+        
+        // 删除模型
+        function deleteModel(modelId) {
+            if (!confirm('确定要删除这个模型配置吗？此操作不可恢复。')) {
+                return;
+            }
+            
+            fetch(`/models/${modelId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    showMessage('模型删除成功', 'success');
+                    // 刷新页面
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showMessage('删除失败: ' + (data.error.message || '未知错误'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('删除模型失败:', error);
+                showMessage('删除失败', 'error');
+            });
+        }
+        
+        // 复制模型
+        function cloneModel(modelId) {
+            fetch(`/models/${modelId}/clone`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    showMessage('模型复制成功', 'success');
+                    // 打开编辑表单
+                    setTimeout(() => {
+                        editModel(data.data.id);
+                    }, 1000);
+                } else {
+                    showMessage('复制失败: ' + (data.error.message || '未知错误'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('复制模型失败:', error);
+                showMessage('复制失败', 'error');
+            });
+        }
+        
+        // 刷新模型状态
+        function refreshModels() {
+            const button = event.target;
+            const originalText = button.textContent;
+            
+            button.textContent = '刷新中...';
+            button.disabled = true;
+            
+            fetch('/models/refresh', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    showMessage('状态刷新完成', 'success');
+                    // 刷新页面
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showMessage('刷新失败: ' + (data.error.message || '未知错误'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('刷新状态失败:', error);
+                showMessage('刷新失败', 'error');
+            })
+            .finally(() => {
+                button.textContent = originalText;
+                button.disabled = false;
+            });
+        }
+        
+        // 从HTML中提取模型配置（简化实现）
+        function extractModelConfig(html) {
+            // 这里应该从详情HTML中提取完整的模型配置
+            // 为简化示例，返回一个基础配置
+            return {
+                id: currentModelId,
+                name: 'Test Model',
+                type: 'COMMERCIAL_AI'
+            };
+        }
+        
+        // 测试模型连接（用于模态框中的测试按钮）
+        function testModelConnection() {
+            const formData = collectFormData();
+            
+            if (!formData) {
+                showMessage('请先填写必要的配置信息', 'error');
+                return;
+            }
+            
+            const button = event.target;
+            const originalText = button.textContent;
+            
+            button.textContent = '测试中...';
+            button.disabled = true;
+            
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            fetch('/api/models/test', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Test response:', data);
+                
+                if (data.ok && data.data && data.data.success) {
+                    showMessage('连接测试成功！', 'success');
+                    
+                    // 显示详细信息
+                    if (data.data.details) {
+                        const details = data.data.details;
+                        console.log('连接详情:', details);
+                    }
+                } else {
+                    const errorMsg = data.error ? data.error.message : 
+                                   data.data ? data.data.message : '连接测试失败';
+                    showMessage('连接测试失败: ' + errorMsg, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('测试连接失败:', error);
+                showMessage('测试连接异常: ' + error.message, 'error');
+            })
+            .finally(() => {
+                button.textContent = originalText;
+                button.disabled = false;
+            });
+        }
+        
+        // 重复的collectFormData函数已移除，使用上面定义的版本
+        
+        // 点击模态框外部关闭
+        document.addEventListener('click', function(event) {
+            // 只有点击overlay背景（不是modal内容）才关闭
+            if (event.target.id === 'model-modal' && event.target.classList.contains('modal-overlay')) {
+                closeModal();
+            }
+        });
+        
+        // ESC键关闭模态框
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+    
+    <!-- 脚本文件 - 放在页面底部确保DOM加载完成 -->
+    <!-- 自定义脚本 -->
+    <script th:src="@{/js/charts.js}" defer onerror="console.error('Failed to load charts.js')"></script>
+</body>
+</html>

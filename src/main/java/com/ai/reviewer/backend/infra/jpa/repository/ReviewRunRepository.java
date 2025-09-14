@@ -110,8 +110,20 @@ public interface ReviewRunRepository extends JpaRepository<ReviewRunEntity, Stri
      */
     @Query("SELECT r FROM ReviewRunEntity r " +
            "LEFT JOIN FETCH r.artifact " +
+           "LEFT JOIN FETCH r.findings " +
            "WHERE r.runId = :runId")
     Optional<ReviewRunEntity> findByRunIdWithDetails(@Param("runId") String runId);
+    
+    /**
+     * Find review run with scores loaded separately to avoid MultipleBagFetchException
+     *
+     * @param runId the run ID
+     * @return optional review run with scores loaded
+     */
+    @Query("SELECT r FROM ReviewRunEntity r " +
+           "LEFT JOIN FETCH r.scores " +
+           "WHERE r.runId = :runId")
+    Optional<ReviewRunEntity> findByRunIdWithScores(@Param("runId") String runId);
 
     /**
      * Find review runs for a repository with summary information.

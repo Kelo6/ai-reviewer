@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN" 
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试页面 - AI Reviewer</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+
+<body>
+    <div class="container">
+        <h1>模型管理测试页面</h1>
+        
+        <div th:if="${error}" class="error">
+            <p th:text="${error}">错误信息</p>
+        </div>
+        
+        <div th:if="${statistics}">
+            <h2>统计信息</h2>
+            <p>总模型数: <span th:text="${statistics.totalModels ?: 0}">0</span></p>
+            <p>已启用: <span th:text="${statistics.enabledModels ?: 0}">0</span></p>
+            <p>已连接: <span th:text="${statistics.connectedModels ?: 0}">0</span></p>
+        </div>
+        
+        <div th:if="${models}">
+            <h2>模型列表</h2>
+            <div th:each="model : ${models}">
+                <div class="model-item">
+                    <h3 th:text="${model.name ?: '未知模型'}">模型名称</h3>
+                    <p>类型: <span th:text="${model.type?.displayName ?: '未知类型'}">类型</span></p>
+                    <p>状态: <span th:text="${model.status?.displayName ?: '未知状态'}">状态</span></p>
+                    <p>启用: <span th:text="${model.enabled ?: false}">false</span></p>
+                </div>
+            </div>
+        </div>
+        
+        <div th:unless="${models}">
+            <p>没有找到模型配置</p>
+        </div>
+    </div>
+</body>
+</html>
